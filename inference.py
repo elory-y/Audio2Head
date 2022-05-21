@@ -117,12 +117,12 @@ def get_audio_feature_from_audio(audio_path,norm = True):
         cat = np.concatenate([a[:frame_num], b[:frame_num], c[:frame_num], c_flag[:frame_num]], axis=1)
         return cat
 
-def audio2head(audio_path, img_path, model_path, save_path):
-    temp_audio="./results/temp.wav"
-    command = ("ffmpeg -y -i %s -async 1 -ac 1 -vn -acodec pcm_s16le -ar 16000 %s" % (audio_path, temp_audio))
-    output = subprocess.call(command, shell=True, stdout=None)
-
-    audio_feature = get_audio_feature_from_audio(temp_audio)
+def audio2head(audio_path, img_path, save_path):
+    # temp_audio="./results/temp.wav"
+    # command = ("ffmpeg -y -i %s -async 1 -ac 1 -vn -acodec pcm_s16le -ar 16000 %s" % (audio_path, temp_audio))
+    # output = subprocess.call(command, shell=True, stdout=None)
+    model_path = r"./checkpoints/audio2head.pth.tar"
+    audio_feature = get_audio_feature_from_audio(audio_path)
     frames = len(audio_feature) // 4
 
     img = io.imread(img_path)[:, :, :3]
@@ -138,16 +138,19 @@ def audio2head(audio_path, img_path, model_path, save_path):
 
     config_file = r"./config/vox-256.yaml"
     with open(config_file) as f:
-        config = yaml.load(f)
+        config = yaml.safe_load(f)
     kp_detector = KPDetector(**config['model_params']['kp_detector_params'],
                              **config['model_params']['common_params'])
     generator = OcclusionAwareGenerator(**config['model_params']['generator_params'],
                                         **config['model_params']['common_params'])
     kp_detector = kp_detector.cuda()
     generator = generator.cuda()
-
-    opt = argparse.Namespace(**yaml.load(open("./config/parameters.yaml")))
-    audio2kp = AudioModel3D(opt).cuda()
+    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint/1_6_49.19544.pth"
+    new_check = torch.load(new_check_path)
+    opt = argparse.Namespace(**yaml.safe_load(open("./config/parameters.yaml")))
+    audio2kp = AudioModel3D(seq_len=parse.seq_len, block_expansion=parse.AudioModel_block_expansion,
+                            num_blocks=parse.AudioModel_num_blocks, max_features=parse.AudioModel_max_features,
+                            num_kp=parse.num_kp).cuda()
 
     checkpoint  = torch.load(model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
@@ -233,19 +236,37 @@ def audio2head(audio_path, img_path, model_path, save_path):
     imageio.mimsave(video_path, predictions_gen, fps=25.0)
 
     save_video = os.path.join(log_dir, image_name)
-    cmd = r'ffmpeg -y -i "%s" -i "%s" -vcodec copy "%s"' % (video_path, audio_path, save_video)
-    os.system(cmd)
-    os.remove(video_path)
+    # cmd = r'ffmpeg -y -i "%s" -i "%s" -vcodec copy "%s"' % (video_path, audio_path, save_video)
+    # os.system(cmd)
+    # os.remove(video_path)
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audio_path",default=r"./demo/audio/intro.wav",help="audio file sampled as 16k hz")
-    parser.add_argument("--img_path",default=r"./demo/img/paint.jpg", help="reference image")
+    parser.add_argument("--audio_path",default=r"./demo/5.19/g_1.wav",help="audio file sampled as 16k hz")
+    parser.add_argument("--img_path",default=r"./demo/img/gangqiang.jpg", help="reference image")
     parser.add_argument("--save_path",default=r"./results", help="save path")
     parser.add_argument("--model_path",default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")
-
+    parser.add_argument("--frames", default=64)
+    parser.add_argument("--lr", default=2.0e-6)
+    parser.add_argument("--batch_size", default=10)
+    parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")
+    parser.add_argument("--test_datapath", default=r"/home/ssd1/Database/audio2head/test")
+    parser.add_argument("--epochs", default=200)
+    parser.add_argument("--config", default="./config/parameters.yaml")
+    parser.add_argument("--seq_len", default=64)
+    parser.add_argument("--num_kp", default=10)
+    parser.add_argument("--AudioModel_num_blocks", default=5, help="AudioModel3D model num_blocks")
+    parser.add_argument("--AudioModel_max_features", default=512, help="AudioModel3D model max_features")
+    parser.add_argument("--estimate_jacobian", default=True)
+    parser.add_argument("--AudioModel_block_expansion", default=32, help="AudioModel3D model block_expansion")
+    parser.add_argument("--kp_dete_block_expansion", default=32)
+    parser.add_argument("--num_channels", default=3)
+    parser.add_argument("--kp_dete_max_features", default=1024)
+    parser.add_argument("--kp_dete_scale_factor", default=0.25)
+    parser.add_argument("--kp_dete_num_blocks", default=5)
+    parser.add_argument("--kp_dete_temperature", default=0.1)
     parse = parser.parse_args()
 
     os.makedirs(parse.save_path,exist_ok=True)
-    audio2head(parse.audio_path,parse.img_path,parse.model_path,parse.save_path)
+    audio2head(parse.audio_path,parse.img_path,parse.save_path)
