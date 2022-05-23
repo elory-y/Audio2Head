@@ -9,14 +9,15 @@ from sync_batchnorm import SynchronizedBatchNorm2d as BatchNorm2d
 
 
 class AudioModel3D(nn.Module):
-    def __init__(self,opt):
+    def __init__(self,seq_len, block_expansion,num_blocks, max_features,
+                            num_kp, estimate_jacobian=True):
         super(AudioModel3D,self).__init__()
-        self.opt = opt
-        self.seq_len = opt.seq_len
+        # self.opt = opt
+        self.seq_len = seq_len
         self.pad = 0
-
+        self.num_kp = num_kp
         self.down_id = AntiAliasInterpolation2d(3,0.25)
-        self.down_pose = AntiAliasInterpolation2d(opt.seq_len,0.25)
+        self.down_pose = AntiAliasInterpolation2d(seq_len,0.25)
 
         self.embedding = nn.Sequential(nn.ConvTranspose2d(1, 8, (29, 14), stride=(1, 1), padding=(0, 11)),
                                        BatchNorm2d(8),
@@ -24,13 +25,13 @@ class AudioModel3D(nn.Module):
                                        nn.Conv2d(8, 2, (13, 13), stride=(1, 1), padding=(6, 6)))
 
         num_channels = 6
-        self.predictor = Hourglass3D(opt.block_expansion, in_features=num_channels,
-                                       max_features=opt.max_features, num_blocks=opt.num_blocks)
+        self.predictor = Hourglass3D(block_expansion, in_features=num_channels,
+                                       max_features=max_features, num_blocks=num_blocks)
 
-        self.kp = nn.Conv3d(in_channels=self.predictor.out_filters, out_channels=opt.num_kp, kernel_size=(7, 7, 7),
+        self.kp = nn.Conv3d(in_channels=self.predictor.out_filters, out_channels=self.num_kp, kernel_size=(7, 7, 7),
                             padding=(3,0,0))
-        if opt.estimate_jacobian:
-            self.num_jacobian_maps = opt.num_kp
+        if estimate_jacobian:
+            self.num_jacobian_maps = self.num_kp
             self.jacobian = nn.Conv2d(in_channels=self.predictor.out_filters,
                                       out_channels=4 * self.num_jacobian_maps, kernel_size=(7, 7), padding=(0,0))
             self.jacobian.weight.data.zero_()
@@ -45,12 +46,12 @@ class AudioModel3D(nn.Module):
         bs,_,_,c_dim = x["audio"].shape
 
         audio_embedding = self.embedding(x["audio"].reshape(-1,1,4,c_dim))
-        audio_embedding = F.interpolate(audio_embedding,scale_factor=2).reshape(bs,self.opt.seq_len,2,64,64).permute(0,2,1,3,4)
+        audio_embedding = F.interpolate(audio_embedding,scale_factor=2).reshape(bs,self.seq_len,2,64,64).permute(0,2,1,3,4)
 
         id_feature = self.down_id(x["id_img"])
         pose_feature = self.down_pose(x["pose"])
 
-        embeddings = torch.cat([audio_embedding,id_feature.unsqueeze(2).repeat(1,1,self.opt.seq_len,1,1),pose_feature.unsqueeze(1)],dim=1)
+        embeddings = torch.cat([audio_embedding,id_feature.unsqueeze(2).repeat(1,1,self.seq_len,1,1),pose_feature.unsqueeze(1)],dim=1)
 
         feature_map = self.predictor(embeddings)
         feature_shape = feature_map.shape
@@ -62,7 +63,7 @@ class AudioModel3D(nn.Module):
         heatmap = heatmap.view(*final_shape)
 
         out = gaussian2kp(heatmap)
-        out["value"] = out["value"].reshape(-1,self.opt.seq_len,self.opt.num_kp,2)
+        out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2)
         if self.jacobian is not None:
             jacobian_map = self.jacobian(feature_map.permute(0,2,1,3,4).reshape(-1, feature_shape[1],feature_shape[3],feature_shape[4]))
 
@@ -75,7 +76,7 @@ class AudioModel3D(nn.Module):
             jacobian = jacobian.view(final_shape[0], final_shape[1], 4, -1)
             jacobian = jacobian.sum(dim=-1)
             jacobian = jacobian.view(jacobian.shape[0], jacobian.shape[1], 2, 2)
-            out['jacobian'] = jacobian.reshape(-1,self.seq_len,self.opt.num_kp,2,2)
+            out['jacobian'] = jacobian.reshape(-1,self.seq_len,self.num_kp,2,2)
 
         out["pred_fature"] = prediction
         return out

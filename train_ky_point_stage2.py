@@ -20,7 +20,7 @@ import wandb
 import os
 
 
-wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="oldgen_newaudio")
+wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="newgen_newaudio_2")
 
 
 def preapare_kypoint(imgs, KPDetector):
@@ -40,7 +40,7 @@ def calculate_loss(losses_generator, driving_kypoint, source_kypoint, iteration,
     ky_loss = loss_function(source_kypoint, driving_kypoint)
     number = ky_loss.shape[0] * ky_loss.shape[1]
     ky_loss = ky_loss.flatten(2).mean(-1).sum() / number
-    loss = 10 * ky_loss +  perceptual_loss +  equivariance_value + equivariance_jacobian_loss
+    loss = 100 * ky_loss +10 * perceptual_loss + 10* equivariance_value + 10*equivariance_jacobian_loss
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss': 100 * ky_loss.item(),
@@ -75,7 +75,7 @@ def run(args, generator, kp_detector, audio2kp, device):
     test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                        shuffle=True, num_workers=0)
 
-    train_iteration = 4966
+    train_iteration = 19474
     test_iteration = 0
 
     for epoch in range(args.epochs):
@@ -122,7 +122,7 @@ def run(args, generator, kp_detector, audio2kp, device):
                 num += 1
                 test_loss += loss.item()
                 print("test_loss", loss.item())
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio2head/fomm_checkpoint",
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio2head/fomm_checkpoint3",
                                                                '1_%s_%.5f.pth' % (epoch, test_loss / num)))
 
 
@@ -141,8 +141,8 @@ def main(args):
     audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                             num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                             num_kp=args.num_kp).to(device)
-    train_check = torch.load("/home/user/Database/audio2head/fomm_checkpoint/1_6_49.19544.pth")
-    audio2kp.load_state_dict(train_check)
+    check_path = "/home/user/Database/audio2head/fomm_checkpoint2/1_22_506.65228.pth"
+    audio2kp.load_state_dict(torch.load(check_path))
     generator = OcclusionAwareGenerator(num_channels=args.num_channels, num_kp=args.num_kp,
                                         block_expansion=args.generator_block_expansion,
                                         max_features=args.generator_max_features,
@@ -162,9 +162,9 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--lr", default=1.0e-7)
     parser.add_argument("--batch_size", default=2)
-    parser.add_argument("--model_path", default=r"./checkpoints/audio2head.pth.tar",
+    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar",
                         help="pretrained model path")
     parser.add_argument("--train_source", default=r"/home/user/Database/fomm/train")
     parser.add_argument("--test_source", default=r"/home/user/Database/fomm/test")

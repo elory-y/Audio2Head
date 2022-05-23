@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="71ee118b-fa11-4c88-af61-1e63f92ce0c7" name="123">
+        <fileTransfer accessType="SFTP" host="priv.caopu.work" port="123" sshConfigId="c3a4e8a8-4753-4044-bc0c-22f3c9409e09" sshConfig="caopu@priv.caopu.work:123 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>
