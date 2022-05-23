@@ -177,7 +177,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-6)
+    parser.add_argument("--lr", default=.0e-6)
     parser.add_argument("--batch_size", default=4)
     parser.add_argument("--model_path", default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/train")
