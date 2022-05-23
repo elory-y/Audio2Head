@@ -44,6 +44,7 @@ class AudioModel3D(nn.Module):
 
     def forward(self, x):
         bs,_,_,c_dim = x["audio"].shape
+
         audio_embedding = self.embedding(x["audio"].reshape(-1,1,4,c_dim))
         audio_embedding = F.interpolate(audio_embedding,scale_factor=2).reshape(bs,self.seq_len,2,64,64).permute(0,2,1,3,4)
 
