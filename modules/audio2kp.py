@@ -43,27 +43,27 @@ class AudioModel3D(nn.Module):
 
 
     def forward(self, x):
-        bs,_,_,c_dim = x["audio"].shape
+        bs,_,_,c_dim = x["audio"].shape #[1,64,4,41]
 
-        audio_embedding = self.embedding(x["audio"].reshape(-1,1,4,c_dim))
-        audio_embedding = F.interpolate(audio_embedding,scale_factor=2).reshape(bs,self.seq_len,2,64,64).permute(0,2,1,3,4)
+        audio_embedding = self.embedding(x["audio"].reshape(-1,1,4,c_dim)) #[64,2,32,32]
+        audio_embedding = F.interpolate(audio_embedding,scale_factor=2).reshape(bs,self.seq_len,2,64,64).permute(0,2,1,3,4) #[1,2,64,64,64]
 
-        id_feature = self.down_id(x["id_img"])
-        pose_feature = self.down_pose(x["pose"])
+        id_feature = self.down_id(x["id_img"]) #[1,3,64,64]
+        pose_feature = self.down_pose(x["pose"]) #[1,64,64,64]
 
-        embeddings = torch.cat([audio_embedding,id_feature.unsqueeze(2).repeat(1,1,self.seq_len,1,1),pose_feature.unsqueeze(1)],dim=1)
+        embeddings = torch.cat([audio_embedding,id_feature.unsqueeze(2).repeat(1,1,self.seq_len,1,1),pose_feature.unsqueeze(1)],dim=1) #[1,6,64,64,64]
 
         feature_map = self.predictor(embeddings)
-        feature_shape = feature_map.shape
-        prediction = self.kp(feature_map).permute(0,2,1,3,4)
-        prediction = prediction.reshape(-1,prediction.shape[2],prediction.shape[3],prediction.shape[4])
-        final_shape = prediction.shape
-        heatmap = prediction.view(final_shape[0], final_shape[1], -1)
-        heatmap = F.softmax(heatmap / self.temperature, dim=2)
-        heatmap = heatmap.view(*final_shape)
+        feature_shape = feature_map.shape # [1,38,64,64,64]
+        prediction = self.kp(feature_map).permute(0,2,1,3,4) #[1,64,10,58,58]
+        prediction = prediction.reshape(-1,prediction.shape[2],prediction.shape[3],prediction.shape[4]) #[64,10,58,58]
+        final_shape = prediction.shape  #[64,10,58,58]
+        heatmap = prediction.view(final_shape[0], final_shape[1], -1) #[64,10,3364]
+        heatmap = F.softmax(heatmap / self.temperature, dim=2) #[64,10,3364]
+        heatmap = heatmap.view(*final_shape)# #[64,10,58,58]
 
-        out = gaussian2kp(heatmap)
-        out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2)
+        out = gaussian2kp(heatmap)#得到value，[64,10,2]
+        out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2) #[1,64,10,2]
         if self.jacobian is not None:
             jacobian_map = self.jacobian(feature_map.permute(0,2,1,3,4).reshape(-1, feature_shape[1],feature_shape[3],feature_shape[4]))
 

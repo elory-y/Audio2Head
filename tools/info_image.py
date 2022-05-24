@@ -52,27 +52,43 @@ def draw_annotation_box(image, rotation_vector, translation_vector, color=(255, 
 def info_img(imgs, audio_features, poses, kp_detector, audio2kp, generator,pre_images, estimate_jacobian=True):
     predictions_gen = []
     key_points = []
+
+    imgs = imgs.cuda()
+    audio_feature = audio_features.type(torch.FloatTensor).cuda()
+    pose = poses.type(torch.FloatTensor).cuda()
+    t = {}
+    t["audio"] = audio_feature
+    t["pose"] = pose
+    t["id_img"] = imgs
+    kp_gen_source = kp_detector(imgs)
+    gen_kp = audio2kp(t)
+    out_gen_img = []
     for i in range(len(imgs)):
-        img = imgs[i].unsqueeze(0).cuda()
-        # img = torch.from_numpy(img).unsqueeze(0).cuda()
-        audio_feature = audio_features[i].unsqueeze(0).type(torch.FloatTensor).cuda()
-        pose = poses[i].unsqueeze(0).type(torch.FloatTensor).cuda()
-        t = {}
-        t["audio"] = audio_feature
-        t["pose"] = pose
-        t["id_img"] = img
-        kp_gen_source = kp_detector(img)
-        gen_kp = audio2kp(t)
-        key_points.append(gen_kp["value"][:, :pre_images].squeeze(0))
-        for bs_idx in range(pre_images):
-            tt = {}
-            tt["value"] = gen_kp["value"][:, bs_idx]
-            tt["jacobian"] = gen_kp["jacobian"][:, bs_idx]
-            out_gen = generator(img, kp_source=kp_gen_source, kp_driving=tt)
-            predictions_gen.append(out_gen['prediction'][0])
-    predictions_gen = torch.stack(predictions_gen, dim=0)
-    key_points = torch.cat(key_points, dim=0)
-    return predictions_gen, key_points
+        # for k, v in kp_gen_source.items():
+        #     kp_gen_source[k] = v[i].repeat([pre_images] + [1] * (v.dim()-1))
+
+        img = imgs[i][None].repeat([pre_images, 1, 1, 1])
+        out_gen_img.append(img)
+
+    for k, v in kp_gen_source.items():
+       # print([1, pre_images] + [1] * (v.dim() - 2))
+        kp_gen_source[k] = v.unsqueeze(dim=1).repeat([1, pre_images] + [1] * (v.dim() - 1))
+        kp_gen_source[k] = kp_gen_source[k].view([-1] + list(kp_gen_source[k].shape[2:]))
+
+    gen_kp_values = gen_kp['value'][:, :pre_images].reshape(-1, 10, 2)
+    gen_kps_jacobian = gen_kp['jacobian'][:, :pre_images].reshape(-1, 10, 2, 2)
+    out_gen_img = torch.cat(out_gen_img,dim=0)
+    out_gen = generator(out_gen_img,
+                        kp_source=kp_gen_source,
+                        kp_driving={
+                            'value': gen_kp_values,
+                            'jacobian': gen_kps_jacobian
+                        })
+
+    # predictions_gen.append(out_gen['prediction'])
+    # predictions_gen = torch.cat(predictions_gen, dim=0)
+    # key_points = torch.cat(key_points, dim=0)
+    return out_gen['prediction'], kp_gen_source["value"]
 
 
 if __name__== "__main__":

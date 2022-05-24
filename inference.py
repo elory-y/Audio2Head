@@ -145,7 +145,7 @@ def audio2head(audio_path, img_path, save_path):
                                         **config['model_params']['common_params'])
     kp_detector = kp_detector.cuda()
     generator = generator.cuda()
-    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint2/1_22_506.65228.pth"
+    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint3/2_6_22.62541.pth"
     new_check = torch.load(new_check_path)
     opt = argparse.Namespace(**yaml.safe_load(open("./config/parameters.yaml")))
     audio2kp = AudioModel3D(seq_len=parse.seq_len, block_expansion=parse.AudioModel_block_expansion,
