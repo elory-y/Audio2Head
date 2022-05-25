@@ -13,7 +13,7 @@ from modules.generator import OcclusionAwareGenerator
 from modules.keypoint_detector import KPDetector
 from modules.audio2kp import AudioModel3D
 import yaml,os,imageio
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 def draw_annotation_box( image, rotation_vector, translation_vector, color=(255, 255, 255), line_width=2):
     """Draw a 3D box as annotation of pose"""
 
@@ -145,7 +145,7 @@ def audio2head(audio_path, img_path, save_path):
                                         **config['model_params']['common_params'])
     kp_detector = kp_detector.cuda()
     generator = generator.cuda()
-    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint3/2_6_22.62541.pth"
+    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
     new_check = torch.load(new_check_path)
     opt = argparse.Namespace(**yaml.safe_load(open("./config/parameters.yaml")))
     audio2kp = AudioModel3D(seq_len=parse.seq_len, block_expansion=parse.AudioModel_block_expansion,
@@ -243,7 +243,7 @@ def audio2head(audio_path, img_path, save_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audio_path",default=r"/home/caopu/workspace/audio-old/demo/5.19/g_1.wav",help="audio file sampled as 16k hz")
+    parser.add_argument("--audio_path",default=r"/home/caopu/workspace/Audio2Head/demo/audio/id1_00736_new.wav",help="audio file sampled as 16k hz")
     parser.add_argument("--img_path",default=r"/home/caopu/workspace/audio-old/demo/img/gangqiang.jpg", help="reference image")
     parser.add_argument("--save_path",default=r"./results", help="save path")
     parser.add_argument("--model_path",default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")

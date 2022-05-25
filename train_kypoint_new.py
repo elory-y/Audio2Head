@@ -1,4 +1,3 @@
-from datasets.KPdataset import KeyPoint_Data
 from datasets.online_KPdataset import KeyPoint_Data
 from torch.utils.data import DataLoader
 import torch
@@ -12,10 +11,11 @@ import random
 from skimage import io, img_as_float32
 from modules.keypoint_detector import KPDetector
 import os
-# import wandb
+import wandb
 
 
-# wandb.init(entity="suimang", project="ky_predictor", name="v1_coslr2.0e-5")
+wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr2.0e-3")
+
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
     kpvalues = []
@@ -85,16 +85,21 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 10 * jacobian_loss + 0 * jacobian_map_loss
-    # if istrain == True:
-    #     wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
-    #     wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-    #     # with open("train_1oss.txt", "a+") as f:
-    #     #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
-    #     # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
-    # else:
-    #     wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
-    #     wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+    loss = 10 * kp_loss + 10 * jacobian_loss +  jacobian_map_loss
+    if istrain == True:
+        wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
+        wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        wandb.log({"train_jacobian_map_loss": jacobian_loss.item()}, step=interation)
+        wandb.log({"train_total_loss": loss.item()}, step=interation)
+        # with open("train_1oss.txt", "a+") as f:
+        #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
+        # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
+    else:
+        wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
+        wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
+        wandb.log({"test_total_loss": loss.item()}, step=interation)
+
         # with open("test_loss.txt", "a+") as f:
         #     f.write("test_kp_loss %s test_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
         # print("test_kp_loss %s test_jacobian_loss %s jacobian_map_loss %s totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), jacobian_map_loss.item(), loss.item()))
@@ -146,11 +151,12 @@ def main(args):
             t["pose"] = poses.type(torch.FloatTensor).to(device)
             t["id_img"] = imgs.to(device)
             gen_kp = audio2kp(t)
-            train_interation += i
+            train_interation += 1
             loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, train_interation,istrain=True)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
+            print(loss.item(), train_interation)
 
 
         audio2kp.eval()
@@ -162,26 +168,26 @@ def main(args):
                                                                    dic["pad"], dic["star_frame"]
                 kpvalues, kpjacobians, kpjacobian_maps, lab_kpjacobian_map, imgs, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame, kp_detector=kp_detector, pad=pad)
                 t = {}
-                test_interation += i
+                test_interation += 1
                 t["audio"] = audio_feature.type(torch.FloatTensor).to(device)
                 t["pose"] = poses.type(torch.FloatTensor).to(device)
                 t["id_img"] = imgs.to(device)
                 gen_kp = audio2kp(t)
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
-                num = i
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd1/Database/audio2head/checkpoint", '1_%s_%.5f.pth' % (epoch, test_loss/num)))
+                num += 1
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=.0e-6)
+    parser.add_argument("--lr", default=2.0e-3)
     parser.add_argument("--batch_size", default=4)
-    parser.add_argument("--model_path", default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")
-    parser.add_argument("--train_datapath", default=r"./data/train")
-    parser.add_argument("--test_datapath", default=r"./data/test")
+    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
+    parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
+    parser.add_argument("--test_datapath", default=r"./data/audio_data_girl/audio_test")
     parser.add_argument("--epochs", default=200)
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
