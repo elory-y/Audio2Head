@@ -20,7 +20,7 @@ import wandb
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_2e-5")
+wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_2e-5_pre10")
 
 
 def preapare_kypoint(imgs, KPDetector):
@@ -142,7 +142,7 @@ def main(args):
                             num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                             num_kp=args.num_kp).to(device)
     # check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
-    check_path = "/home/user/Database/audio2head/fomm_checkpoint3/3_52_48.51383.pth"
+    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/1_5_526.53601.pth"
     audio2kp.load_state_dict(torch.load(check_path))
     generator = OcclusionAwareGenerator(num_channels=args.num_channels, num_kp=args.num_kp,
                                         block_expansion=args.generator_block_expansion,
@@ -165,17 +165,17 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=64)
     parser.add_argument("--lr", default=2.0e-5)
     parser.add_argument("--batch_size", default=2)
-    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar",
+    parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar",
                         help="pretrained model path")
-    parser.add_argument("--train_source", default=r"/home/user/Database/fomm/train")
-    parser.add_argument("--test_source", default=r"/home/user/Database/fomm/test")
-    parser.add_argument("--train_driving", default=r"/home/caopu/workspace/Audio2Head/data/boy_data")
-    parser.add_argument("--test_driving", default=r"/home/caopu/workspace/Audio2Head/data/boy_data")
+    parser.add_argument("--train_source", default=r"/home/ssd1/Database/fomm/train")
+    parser.add_argument("--test_source", default=r"/home/ssd1/Database/fomm/test")
+    parser.add_argument("--train_driving", default=r"./data/boy_data")
+    parser.add_argument("--test_driving", default=r"./data/boy_data")
     parser.add_argument("--epochs", default=2000)
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
-    parser.add_argument("--pre_images", default=5)
+    parser.add_argument("--pre_images", default=10)
     parser.add_argument("--AudioModel_num_blocks", default=5, help="AudioModel3D model num_blocks")
     parser.add_argument("--AudioModel_max_features", default=512, help="AudioModel3D model max_features")
     parser.add_argument("--estimate_jacobian", default=True)
