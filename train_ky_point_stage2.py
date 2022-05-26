@@ -122,7 +122,7 @@ def run(args, generator, kp_detector, audio2kp, device):
                 num += 1
                 test_loss += loss.item()
                 print("test_loss", loss.item())
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio2head/fomm_checkpoint3",
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd1/Database/audio2head/stage2chekcpoint/audio2fomm",
                                                                '2e-5_%s_%.5f.pth' % (epoch, test_loss / num)))
 
 
