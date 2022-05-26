@@ -14,7 +14,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr2.0e-3")
+wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr2.0e-4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -129,12 +129,12 @@ def main(args):
     test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                            shuffle=True, num_workers=2)
     audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
-    # train_check = torch.load("/home/ssd1/Database/audio2head/01_59_0.79175.pth")
-    audio2kp.load_state_dict(checkpoint["audio2kp"])
-    # audio2kp.load_state_dict(train_check)
+    train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/1_29_0.61785.pth")
+    # audio2kp.load_state_dict(checkpoint["audio2kp"])
+    audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
     # log_writer = SummaryWriter()
     train_interation = 0
     test_interation = 0
@@ -176,15 +176,15 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-3)
-    parser.add_argument("--batch_size", default=4)
+    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"./data/audio_data_girl/audio_test")
