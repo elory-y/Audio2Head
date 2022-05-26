@@ -175,7 +175,7 @@ if __name__ == '__main__':
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
-    parser.add_argument("--pre_images", default=10)
+    parser.add_argument("--pre_images", default=12)
     parser.add_argument("--AudioModel_num_blocks", default=5, help="AudioModel3D model num_blocks")
     parser.add_argument("--AudioModel_max_features", default=512, help="AudioModel3D model max_features")
     parser.add_argument("--estimate_jacobian", default=True)
