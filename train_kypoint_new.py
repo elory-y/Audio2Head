@@ -14,7 +14,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr1.0e-5—loss")
+wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr1.0e-2—loss")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []

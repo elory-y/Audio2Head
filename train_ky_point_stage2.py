@@ -142,7 +142,7 @@ def main(args):
                             num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                             num_kp=args.num_kp).to(device)
     # check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
-    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/audio2fomm/1_5_526.53601.pth"
+    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/1_5_526.53601.pth"
     audio2kp.load_state_dict(torch.load(check_path))
     generator = OcclusionAwareGenerator(num_channels=args.num_channels, num_kp=args.num_kp,
                                         block_expansion=args.generator_block_expansion,
