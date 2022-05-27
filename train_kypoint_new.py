@@ -128,7 +128,7 @@ def main(args):
     test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                            shuffle=True, num_workers=2)
     audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
-    train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/1_29_0.61785.pth")
+    train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
     # audio2kp.load_state_dict(checkpoint["audio2kp"])
     audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
