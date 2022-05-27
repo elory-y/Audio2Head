@@ -20,7 +20,7 @@ import wandb
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_2e-5_pre10")
+wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_2e-6_pre10")
 
 
 def preapare_kypoint(imgs, KPDetector):
@@ -40,11 +40,11 @@ def calculate_loss(losses_generator, driving_kypoint, source_kypoint, iteration,
     ky_loss = loss_function(source_kypoint, driving_kypoint)
     number = ky_loss.shape[0] * ky_loss.shape[1]
     ky_loss = ky_loss.flatten(2).mean(-1).sum() / number
-    loss = 100 * ky_loss + perceptual_loss + 10 * equivariance_value + 10*equivariance_jacobian_loss
+    loss = 100 * ky_loss + 10*perceptual_loss + 10 * equivariance_value + 10*equivariance_jacobian_loss
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss': 100 * ky_loss.item(),
-        f'{phase}_perceptual_loss':  perceptual_loss.item(),
+        f'{phase}_perceptual_loss': 10 * perceptual_loss.item(),
         f'{phase}_equivariance_value': 10 * equivariance_value.item(),
         f'{phase}_equivariance_jacobian_loss': 10 * equivariance_jacobian_loss.item(),
         f'{phase}_loss': loss.item()
@@ -163,7 +163,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-5)
+    parser.add_argument("--lr", default=2.0e-6)
     parser.add_argument("--batch_size", default=2)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar",
                         help="pretrained model path")

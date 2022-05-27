@@ -14,7 +14,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr2.0e-5—loss")
+wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr1.0e-5—loss")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -175,14 +175,14 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '2e-5_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1e-6_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--lr", default=1.0e-5)
     parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
