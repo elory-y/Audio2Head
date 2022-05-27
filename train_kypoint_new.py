@@ -95,7 +95,7 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
         # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
     else:
         wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
-        wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        wandb.log({"test_jacobian_loss": 100 * jacobian_loss.item()}, step=interation)
         wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
         wandb.log({"test_total_loss": loss.item()}, step=interation)
 
@@ -175,14 +175,14 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1e-6_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1e-2_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=1.0e-5)
+    parser.add_argument("--lr", default=1.0e-2)
     parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
