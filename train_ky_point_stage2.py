@@ -20,7 +20,7 @@ import wandb
 import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
-wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_2e-6_pre10")
+wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_5e-2_pre10")
 
 
 def preapare_kypoint(imgs, KPDetector):
@@ -40,7 +40,7 @@ def calculate_loss(losses_generator, driving_kypoint, source_kypoint, iteration,
     ky_loss = loss_function(source_kypoint, driving_kypoint)
     number = ky_loss.shape[0] * ky_loss.shape[1]
     ky_loss = ky_loss.flatten(2).mean(-1).sum() / number
-    loss = 100 * ky_loss + 10*perceptual_loss + 10 * equivariance_value + 100*equivariance_jacobian_loss
+    loss = 100 * ky_loss + 10*perceptual_loss + 10 * equivariance_value + 10*equivariance_jacobian_loss
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss': 100 * ky_loss.item(),
@@ -123,7 +123,7 @@ def run(args, generator, kp_detector, audio2kp, device):
                 test_loss += loss.item()
                 print("test_loss", loss.item())
         torch.save(audio2kp.state_dict(), os.path.join("/home/ssd1/Database/audio2head/stage2chekcpoint/audio2fomm",
-                                                               '2e-5_%s_%.5f.pth' % (epoch, test_loss / num)))
+                                                               '2e-2_%s_%.5f.pth' % (epoch, test_loss / num)))
 
 
 
@@ -142,7 +142,7 @@ def main(args):
                             num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                             num_kp=args.num_kp).to(device)
     # check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
-    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/audio2fomm/2e-5_62_58.06258.pth"
+    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/audio2fomm/1_5_526.53601.pth"
     audio2kp.load_state_dict(torch.load(check_path))
     generator = OcclusionAwareGenerator(num_channels=args.num_channels, num_kp=args.num_kp,
                                         block_expansion=args.generator_block_expansion,
@@ -163,7 +163,7 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=2.0e-6)
+    parser.add_argument("--lr", default=5.0e-2)
     parser.add_argument("--batch_size", default=2)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar",
                         help="pretrained model path")

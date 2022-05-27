@@ -85,10 +85,10 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 10 * jacobian_loss + 0* jacobian_map_loss
+    loss = 10 * kp_loss + 100 * jacobian_loss + 0* jacobian_map_loss
     if istrain == True:
         wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
-        wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        wandb.log({"train_jacobian_loss": 100 * jacobian_loss.item()}, step=interation)
         wandb.log({"train_total_loss": loss.item()}, step=interation)
         # with open("train_1oss.txt", "a+") as f:
         #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
