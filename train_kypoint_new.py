@@ -1,8 +1,9 @@
-from datasets.online_KPdataset import KeyPoint_Data
+from datasets.online_KPdataset import KeyPoint_Data, KeyPoint_PaddleAudioData
 from torch.utils.data import DataLoader
 import torch
 import torch.nn as nn
 from modules.audio2kp import AudioModel3D
+from modules.audio2kp_pad import AudioModel3d_pad
 import yaml
 import argparse
 import cv2
@@ -14,7 +15,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_girl", name="v1_lr1.0e-2—loss")
+wandb.init(entity="suimang", project="ky_predictor_pad", name="padv1_lr2.0e-4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -85,17 +86,18 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 100 * jacobian_loss + 0* jacobian_map_loss
+    loss = 10 * kp_loss + 10 * jacobian_loss + 1* jacobian_map_loss
     if istrain == True:
         wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
-        wandb.log({"train_jacobian_loss": 100 * jacobian_loss.item()}, step=interation)
+        wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        wandb.log({"test_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
         wandb.log({"train_total_loss": loss.item()}, step=interation)
         # with open("train_1oss.txt", "a+") as f:
         #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
         # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
     else:
         wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
-        wandb.log({"test_jacobian_loss": 100 * jacobian_loss.item()}, step=interation)
+        wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
         wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
         wandb.log({"test_total_loss": loss.item()}, step=interation)
 
@@ -121,16 +123,33 @@ def main(args):
     checkpoint = torch.load(args.model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     kp_detector.eval()
-    train_dataset = KeyPoint_Data(root_dir=args.train_datapath, frames=64, model_path=args.model_path)
-    test_dataset = KeyPoint_Data(root_dir=args.test_datapath, frames=64, model_path=args.model_path)
-    train_data = DataLoader(train_dataset, batch_size=args.batch_size,
-                            shuffle=True, num_workers=2)
-    test_data = DataLoader(test_dataset, batch_size=args.batch_size,
-                           shuffle=True, num_workers=2)
-    audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
-    train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
-    # audio2kp.load_state_dict(checkpoint["audio2kp"])
-    audio2kp.load_state_dict(train_check)
+    if args.paddle_audio:
+        train_dataset = KeyPoint_PaddleAudioData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
+        test_dataset = KeyPoint_PaddleAudioData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
+        train_data = KeyPoint_PaddleAudioData(train_dataset, batch_size=args.batch_size,
+                                shuffle=True, num_workers=2)
+        test_data = KeyPoint_PaddleAudioData(test_dataset, batch_size=args.batch_size,
+                               shuffle=True, num_workers=2)
+        audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
+                                num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
+                                num_kp=args.num_kp).to(device)
+        # train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
+        # audio2kp.load_state_dict(checkpoint["audio2kp"])
+        model_dict = audio2kp.state_dict()
+        pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict}
+        model_dict.update(pretraind_dic)
+        audio2kp.load_state_dict(model_dict)
+    else:
+        train_dataset = KeyPoint_Data(root_dir=args.train_datapath, frames=64, model_path=args.model_path)
+        test_dataset = KeyPoint_Data(root_dir=args.test_datapath, frames=64, model_path=args.model_path)
+        train_data = DataLoader(train_dataset, batch_size=args.batch_size,
+                                shuffle=True, num_workers=2)
+        test_data = DataLoader(test_dataset, batch_size=args.batch_size,
+                               shuffle=True, num_workers=2)
+        audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
+        train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
+        # audio2kp.load_state_dict(checkpoint["audio2kp"])
+        audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
@@ -140,11 +159,8 @@ def main(args):
     for epoch in range(args.epochs):
         audio2kp.train()
         for i, dic in enumerate(train_data):
-            mp4_paths, audio_feature, poses, pad, star_frame = dic["mp4_path"], dic["audio_features"], dic["poses"], \
-                                                               dic["pad"], dic["star_frame"]
-
+            mp4_paths, audio_feature, poses, pad, star_frame = dic["mp4_path"], dic["audio_features"], dic["poses"], dic["pad"], dic["star_frame"]
             kpvalues, kpjacobians, kpjacobian_maps, lab_kpjacobian_map, imgs, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame, kp_detector=kp_detector, pad=pad)
-
             t = {}
             t["audio"] = audio_feature.type(torch.FloatTensor).to(device)
             t["pose"] = poses.type(torch.FloatTensor).to(device)
@@ -175,18 +191,20 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_checkpoint", '1e-2_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=1.0e-2)
-    parser.add_argument("--batch_size", default=6)
+    parser.add_argument("--paddle_audio", default=True)
+    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--batch_size", default=12)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
-    parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
-    parser.add_argument("--test_datapath", default=r"./data/audio_data_girl/audio_test")
+    parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")
+    parser.add_argument("--test_datapath", default=r"/home/ssd1/Database/audio2head/test")
+    parser.add_argument("--pad_feature_root", default=r"/home/ssd1/Database/audio2head/wav_16_feature")
     parser.add_argument("--epochs", default=200)
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)

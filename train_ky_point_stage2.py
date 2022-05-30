@@ -3,6 +3,7 @@ import torch.nn as nn
 from torch.utils.data import DataLoader
 from modules.audio2kp import AudioModel3D
 from modules.generator import OcclusionAwareGenerator
+from modules.audio2kp_pad import AudioModel3d_pad
 import yaml
 import argparse
 import cv2
@@ -14,7 +15,7 @@ from tools.stage2_loss import GeneratorFullModel
 from modules.discriminator import MultiScaleDiscriminator
 import glob
 from tools.info_image import info_img
-from datasets.stage2_dataset import Stage2_Dataset
+from datasets.stage2_dataset import Stage2_Dataset, Stage2_PaddleAudioData
 from torch.nn.parallel import DistributedDataParallel
 import wandb
 import os
@@ -66,14 +67,24 @@ def run(args, generator, kp_detector, audio2kp, device):
     generator_full = GeneratorFullModel(kp_detector,generator,
                                         transform_params=args.generator_transform_params,
                                         loss_weights=args.generator_loss_weights)
-
-    train_dataset = Stage2_Dataset(source_root=args.train_source, driving_root=args.train_driving, frames=64, pre_images=args.pre_images)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
-    train_data = DataLoader(train_dataset, batch_size=args.batch_size,
-                       shuffle=True, num_workers=0)
-    test_dataset = Stage2_Dataset(source_root=args.test_source, driving_root=args.test_driving, frames=64, pre_images=args.pre_images)
-    test_data = DataLoader(test_dataset, batch_size=args.batch_size,
-                       shuffle=True, num_workers=0)
+    if args.paddle_audio:
+        train_dataset = Stage2_PaddleAudioData(source_root=args.train_source, driving_root=args.train_driving, frames=64,
+                                       pre_images=args.pre_images, pad_feature_root=args.pad_feature_root)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+        train_data = DataLoader(train_dataset, batch_size=args.batch_size,
+                                shuffle=True, num_workers=0)
+        test_dataset = Stage2_PaddleAudioData(source_root=args.test_source, driving_root=args.test_driving, frames=64,
+                                      pre_images=args.pre_images, pad_feature_root=args.pad_feature_root)
+        test_data = DataLoader(test_dataset, batch_size=args.batch_size,
+                               shuffle=True, num_workers=0)
+    else:
+        train_dataset = Stage2_Dataset(source_root=args.train_source, driving_root=args.train_driving, frames=64, pre_images=args.pre_images)
+        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+        train_data = DataLoader(train_dataset, batch_size=args.batch_size,
+                           shuffle=True, num_workers=0)
+        test_dataset = Stage2_Dataset(source_root=args.test_source, driving_root=args.test_driving, frames=64, pre_images=args.pre_images)
+        test_data = DataLoader(test_dataset, batch_size=args.batch_size,
+                           shuffle=True, num_workers=0)
 
     train_iteration = 0
     test_iteration = 0
@@ -138,12 +149,23 @@ def main(args):
     checkpoint = torch.load(args.model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     kp_detector.eval()
-    audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
-                            num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
-                            num_kp=args.num_kp).to(device)
-    # check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
-    check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/1_5_526.53601.pth"
-    audio2kp.load_state_dict(torch.load(check_path))
+    if args.paddle_audio:
+        audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
+                                    num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
+                                    num_kp=args.num_kp).to(device)
+        train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
+        model_dict = audio2kp.state_dict()
+        pretraind_dic = {k: v for k, v in train_check.items() if k in model_dict}
+        model_dict.update(pretraind_dic)
+        audio2kp.load_state_dict(model_dict)
+        audio2kp.load_state_dict(train_check)
+    else:
+        audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
+                                num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
+                                num_kp=args.num_kp).to(device)
+        # check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
+        check_path = "/home/ssd1/Database/audio2head/stage2chekcpoint/1_5_526.53601.pth"
+        audio2kp.load_state_dict(torch.load(check_path))
     generator = OcclusionAwareGenerator(num_channels=args.num_channels, num_kp=args.num_kp,
                                         block_expansion=args.generator_block_expansion,
                                         max_features=args.generator_max_features,
@@ -163,10 +185,12 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
+    parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=5.0e-2)
     parser.add_argument("--batch_size", default=2)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar",
                         help="pretrained model path")
+    parser.add_argument("--pad_feature_root", default=r"/home/ssd1/Database/audio2head/wav_16_feature")
     parser.add_argument("--train_source", default=r"/home/ssd1/Database/fomm/train")
     parser.add_argument("--test_source", default=r"/home/ssd1/Database/fomm/test")
     parser.add_argument("--train_driving", default=r"./data/boy_data")

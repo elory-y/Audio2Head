@@ -127,4 +127,9 @@ if __name__ == "__main__":
     x["id_img"] = torch.rand([2,3,256,256]).cuda()
     x["pose"] = torch.rand([2,64,256,256]).cuda()
     model = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).cuda()
+    check = torch.load("/home/caopu/workspace/Audio2Head/2e-5_62_58.06258.pth")
+    mode_dict = model.state_dict()
+    pretraind_dic = {k: v for k, v in check.items() if k in mode_dict}
+    mode_dict.update(pretraind_dic)
+    model.load_state_dict(mode_dict)
     a = model(x)

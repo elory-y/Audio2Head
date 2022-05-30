@@ -65,7 +65,7 @@ def draw_annotation_box(image, rotation_vector, translation_vector, color=(255, 
         point_2d[8]), color, line_width, cv2.LINE_AA)
 
 class KeyPoint_Data(Dataset):
-    def __init__(self, root_dir, frames, model_path,):
+    def __init__(self, root_dir, frames, model_path):
         self.root_dir = root_dir
         self.mp4_lis = glob.glob(os.path.join(self.root_dir, "*.mp4"))
         self.frames = frames
@@ -136,17 +136,17 @@ class KeyPoint_Data(Dataset):
 
 
 class KeyPoint_PaddleAudioData(Dataset):
-    def __init__(self, root_dir, frames, model_path,):
+    def __init__(self, root_dir, frames, model_path, pad_feature_root):
         self.root_dir = root_dir
         self.mp4_lis = glob.glob(os.path.join(self.root_dir, "*.mp4"))
         self.frames = frames
         self.model_path = model_path
-
+        self.pad_feature_root = pad_feature_root
 
     def __getitem__(self, item):
         mp4_path = self.mp4_lis[item]
         name = os.path.basename(mp4_path).split(".")[0]
-        audiofeatures_path = os.path.join(self.root_dir, "audio_features_" + name+".npy")
+        audiofeatures_path = os.path.join(self.pad_feature_root, "audio_feature_pad_" + name+"_new.npy")
         pose_path = os.path.join(self.root_dir, "pose_" + name +".npy")
         # 存音频特征
         audio_feature = np.load(audiofeatures_path)
@@ -204,13 +204,12 @@ class KeyPoint_PaddleAudioData(Dataset):
 if __name__ == "__main__":
     from torch.utils.data import DataLoader
 
-    dataset = KeyPoint_Data(root_dir="/home/caopu/workspace/Audio2Head/data/test", frames=64, model_path="./checkpoints/audio2head.pth.tar")
+    dataset = KeyPoint_PaddleAudioData(root_dir="/home/ssd1/Database/audio2head/train", frames=64, model_path="./checkpoints/audio2head.pth.tar", pad_feature_root=r"/home/ssd1/Database/audio2head/wav_16_feature")
     data = DataLoader(dataset, batch_size=2,
                       shuffle=True, num_workers=0)
 
     for number, dic in enumerate(data):
+        print(number)
         for i in dic:
-            print(i)
-            print(len(dic))
             mp4_path, audio_feature, poses, pad, = dic["mp4_path"], dic["audio_features"], dic["poses"], dic["pad"]
-            print(mp4_path)
+            print(audio_feature.shape)

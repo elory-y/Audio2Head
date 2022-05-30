@@ -119,6 +119,65 @@ class Stage2_Dataset(Dataset):
         return dic
 
 
+
+class Stage2_PaddleAudioData(Dataset):
+    def __init__(self, frames, source_root, driving_root, pre_images, pad_feature_root):
+        self.frames = frames
+        self.source_root = source_root
+        self.driving_root = driving_root
+        self.pre_images = pre_images
+        self.source_lis = glob.glob(os.path.join(self.source_root, "*"))
+        self.pad_feature_root = pad_feature_root
+
+    def __len__(self):
+        return len(self.source_lis)
+
+    def __getitem__(self, item):
+        # mp4_path = self.mp4_lis[item]
+        source_dir = self.source_lis[item]
+        img_id = os.path.basename(source_dir)
+        source_imgs_lis = np.sort(glob.glob(os.path.join(source_dir, "*")))
+        audio_feature_path = os.path.join(self.pad_feature_root,  'audio_feature_pad_' + img_id + "_new.npy")
+        if not os.path.exists(audio_feature_path):
+            pose_feature_path = os.path.join(self.driving_root, "test", "pose_" + img_id + ".npy")
+        else:
+            pose_feature_path = os.path.join(self.driving_root, "train", "pose_" + img_id + ".npy")
+        audio_feature = np.load(audio_feature_path)
+        poses = np.load(pose_feature_path)
+        re = poses[:, :3]
+        tra = poses[:, 3:]
+        dic = {}
+        pose_frames = poses.shape[0]
+        frames = pose_frames
+        star_frame = random.randint(0, max(0, frames - self.frames-2))
+        end_frame = star_frame + self.frames
+        audio_feature = audio_feature[int(star_frame * 4 // 3): int(star_frame * 4 // 3) + 86, :]
+        re = re[star_frame: end_frame, :]
+        tra = tra[star_frame: end_frame, :]
+        total_poses = []
+        for i in range(self.frames):
+            trans = tra[i, :]
+            rot = re[i, :]
+            pose = np.zeros([256, 256])
+            draw_annotation_box(pose, np.array(rot), np.array(trans))
+            total_poses.append(pose)
+        source_img = []
+        source_img_lis = source_imgs_lis[star_frame:star_frame + self.pre_images]
+        star_img = cv2.imread(source_imgs_lis[star_frame])
+        star_img = np.array(img_as_float32(star_img))
+        star_img = star_img.transpose((2, 0, 1))
+        for img_path in source_img_lis:
+            img = cv2.imread(img_path)
+            img = np.array(img_as_float32(img))
+            img = img.transpose((2, 0, 1))
+            source_img.append(img)
+        dic["star_frame"] = star_frame
+        dic["audio_features"] = torch.from_numpy(np.array(audio_feature))
+        dic["poses"] = torch.from_numpy(np.array(total_poses))
+        dic["source_img"] = torch.from_numpy(np.array(source_img))
+        dic["star_img"] = star_img
+        return dic
+
 if __name__ == "__main__":
     from modules.generator import OcclusionAwareGenerator
     from modules.keypoint_detector import KPDetector
