@@ -18,8 +18,6 @@ class AudioModel3d_pad(nn.Module):
         self.num_kp = num_kp
         self.down_id = AntiAliasInterpolation2d(3, 0.25)
         self.down_pose = AntiAliasInterpolation2d(seq_len, 0.25)
-        self.up_embedding = nn.Linear(86, 256)
-        self.embedding = nn.Conv2d(1, 1, (1, 2), stride=(1, 2))
         # self.embedding = nn.Sequential(nn.ConvTranspose2d(1, 8, (29, 14), stride=(1, 1), padding=(0, 11)),
         #                                BatchNorm2d(8),
         #                                nn.ReLU(inplace=True),
@@ -45,22 +43,28 @@ class AudioModel3d_pad(nn.Module):
     def forward(self, x):
         bs, time, dim = x["audio"].shape
         #输入的[2,86,2048]特征，先permute变为[2,2048,86]，对86通过线性层变为【2，2048，256】维度，然后还原回【2，256，2048】
-        x["audio"] = self.up_embedding(x["audio"].permute(0,2,1)).permute(0,2,1)
-        frame = (time * 3) // 4 #得到特征对应视频的帧数
-        # 64帧视频对应传统方式得到的音频特征256，输入85是通过深度学习方式对通过传统方式提取到的音频特征进行提取后的维度。64 *4 //3 =85.对85拆分，分成（T,3）
-        x["audio"] = x["audio"].reshape(bs, -1, 4, 2048) #把中间维度拆成(bs,64帧所对应的音频特征)
-        x["audio"] = x["audio"].reshape(-1, 4, 2048).unsqueeze(1) #合并bs和64帧传统方式得到音频特征
-        squ_len, _, _, _ =  x["audio"].shape
-        x["audio"] = x["audio"].reshape(squ_len, 1, 64, 128)
-        audio_embedding_zheng = self.embedding(x["audio"])#通过卷积进行降维变为【squ_len，1，64，64】
+        #todo第一步的【2，86，2048】插值到【2，64，2048】,a1 = torch.nn.functional.interpolate(a.permute(0,2,1), (64)),reshape(2)
+        """
+        a- =【2，86，2048】
+        a1 = torch.nn.functional.interpolate(a.permute(0,2,1), (64))
+        a1.shape
+        Out[88]: torch.Size([2, 2048, 64])
+        a2 = a1.reshape(2,32,64,64)最后的64代表帧数
+        a3 = a2.permute(0,3,1,2)
+        a3.shape
+        Out[91]: torch.Size([2, 64, 32, 64])然后对32进行插值，接下来反转在cat
+        a4 = torch.nn.functional.interpolate(a3,(64,64))
+        a4.shape
+        """
+        x["audio"] = F.interpolate(x["audio"].permute(0, 2, 1), 64).reshape(bs, 32, 64, 64).permute(0,3,1,2)
+        audio_embedding_zheng = F.interpolate(x["audio"], (64, 64)).unsqueeze(1)
         audio_embedding_fan = torch.flip(audio_embedding_zheng, [2, 3])#对后两个维度取反
-        audio_embedding = torch.cat((audio_embedding_zheng, audio_embedding_fan), dim=1).reshape(bs, frame, 2, 64, 64).permute(0, 2, 1, 3, 4)
+        audio_embedding = torch.cat((audio_embedding_zheng, audio_embedding_fan), dim=1)
         id_feature = self.down_id(x["id_img"])  # [1,3,64,64]
         pose_feature = self.down_pose(x["pose"])
         embeddings = torch.cat(
             [audio_embedding, id_feature.unsqueeze(2).repeat(1, 1, self.seq_len, 1, 1), pose_feature.unsqueeze(1)],
             dim=1)  # [1,6,64,64,64]
-
         feature_map = self.predictor(embeddings)
         feature_shape = feature_map.shape  # [1,38,64,64,64]
         prediction = self.kp(feature_map).permute(0, 2, 1, 3, 4)  # [1,64,10,58,58]

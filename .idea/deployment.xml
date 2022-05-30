@@ -12,7 +12,7 @@
       <paths name="caopu@priv.caopu.work:123 password">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/caopu/workspace/Audio2Head" local="$PROJECT_DIR$" />
+            <mapping local="$PROJECT_DIR$" web="/" />
           </mappings>
         </serverdata>
       </paths>
