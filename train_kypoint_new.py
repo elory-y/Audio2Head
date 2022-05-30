@@ -126,9 +126,9 @@ def main(args):
     if args.paddle_audio:
         train_dataset = KeyPoint_PaddleAudioData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
         test_dataset = KeyPoint_PaddleAudioData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
-        train_data = KeyPoint_PaddleAudioData(train_dataset, batch_size=args.batch_size,
+        train_data = DataLoader(train_dataset, batch_size=args.batch_size,
                                 shuffle=True, num_workers=2)
-        test_data = KeyPoint_PaddleAudioData(test_dataset, batch_size=args.batch_size,
+        test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                                shuffle=True, num_workers=2)
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                 num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
     parser.add_argument("--batch_size", default=12)
-    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
+    parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")
     parser.add_argument("--test_datapath", default=r"/home/ssd1/Database/audio2head/test")
     parser.add_argument("--pad_feature_root", default=r"/home/ssd1/Database/audio2head/wav_16_feature")
