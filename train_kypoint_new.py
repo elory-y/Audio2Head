@@ -15,7 +15,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_pad", name="padv1_lr2.0e-4")
+wandb.init(entity="suimang", project="ky_predictor_pad", name="padv1_lr2.0e-6_nomap")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -86,11 +86,11 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 10 * jacobian_loss + 1* jacobian_map_loss
+    loss = 10 * kp_loss + 10 * jacobian_loss +0 * jacobian_map_loss
     if istrain == True:
         wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
         wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-        wandb.log({"test_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
+        # wandb.log({"test_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
         wandb.log({"train_total_loss": loss.item()}, step=interation)
         # with open("train_1oss.txt", "a+") as f:
         #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
@@ -98,7 +98,7 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     else:
         wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
         wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-        wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
+        # wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
         wandb.log({"test_total_loss": loss.item()}, step=interation)
 
         # with open("test_loss.txt", "a+") as f:
@@ -127,27 +127,27 @@ def main(args):
         train_dataset = KeyPoint_PaddleAudioData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
         test_dataset = KeyPoint_PaddleAudioData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=args.pad_feature_root)
         train_data = DataLoader(train_dataset, batch_size=args.batch_size,
-                                shuffle=True, num_workers=2)
+                                shuffle=True, num_workers=0)
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
-                               shuffle=True, num_workers=2)
+                               shuffle=True, num_workers=0)
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                 num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                                 num_kp=args.num_kp).to(device)
-        # train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
-        # audio2kp.load_state_dict(checkpoint["audio2kp"])
-        model_dict = audio2kp.state_dict()
-        pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict}
-        model_dict.update(pretraind_dic)
-        audio2kp.load_state_dict(model_dict)
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-4_76_0.49639.pth")
+        audio2kp.load_state_dict(train_check)
+        # model_dict = audio2kp.state_dict()
+        # pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict}
+        # model_dict.update(pretraind_dic)
+        # audio2kp.load_state_dict(model_dict)
     else:
         train_dataset = KeyPoint_Data(root_dir=args.train_datapath, frames=64, model_path=args.model_path)
         test_dataset = KeyPoint_Data(root_dir=args.test_datapath, frames=64, model_path=args.model_path)
         train_data = DataLoader(train_dataset, batch_size=args.batch_size,
-                                shuffle=True, num_workers=2)
+                                shuffle=True, num_workers=0)
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
-                               shuffle=True, num_workers=2)
+                               shuffle=True, num_workers=0)
         audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
-        train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-4_76_0.49639.pth")
         # audio2kp.load_state_dict(checkpoint["audio2kp"])
         audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
@@ -191,7 +191,7 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check", '2e-6_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 

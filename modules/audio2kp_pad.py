@@ -41,7 +41,7 @@ class AudioModel3d_pad(nn.Module):
         self.temperature = 0.1
 
     def forward(self, x):
-        bs, time, dim = x["audio"].shape
+        bs, _, time, dim = x["audio"].shape
         #输入的[2,86,2048]特征，先permute变为[2,2048,86]，对86通过线性层变为【2，2048，256】维度，然后还原回【2，256，2048】
         #todo第一步的【2，86，2048】插值到【2，64，2048】,a1 = torch.nn.functional.interpolate(a.permute(0,2,1), (64)),reshape(2)
         """
@@ -56,7 +56,7 @@ class AudioModel3d_pad(nn.Module):
         a4 = torch.nn.functional.interpolate(a3,(64,64))
         a4.shape
         """
-        x["audio"] = F.interpolate(x["audio"].permute(0, 2, 1), 64).reshape(bs, 32, 64, 64).permute(0,3,1,2)
+        x["audio"] = F.interpolate(x["audio"].squeeze(1).permute(0, 2, 1), 64).reshape(bs, 32, 64, 64).permute(0,3,1,2)
         audio_embedding_zheng = F.interpolate(x["audio"], (64, 64)).unsqueeze(1)
         audio_embedding_fan = torch.flip(audio_embedding_zheng, [2, 3])#对后两个维度取反
         audio_embedding = torch.cat((audio_embedding_zheng, audio_embedding_fan), dim=1)
