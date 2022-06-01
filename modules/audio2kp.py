@@ -10,7 +10,7 @@ from sync_batchnorm import SynchronizedBatchNorm2d as BatchNorm2d
 
 class AudioModel3D(nn.Module):
     def __init__(self,seq_len, block_expansion,num_blocks, max_features,
-                            num_kp, estimate_jacobian=True):
+                            num_kp, estimate_jacobian=True, estimate_kpvalue=True):
         super(AudioModel3D,self).__init__()
         # self.opt = opt
         self.seq_len = seq_len
@@ -40,7 +40,7 @@ class AudioModel3D(nn.Module):
             self.jacobian = None
 
         self.temperature = 0.1
-
+        self.estimate_kpvalue = estimate_kpvalue
 
     def forward(self, x):
         bs,_,_,c_dim = x["audio"].shape #[1,64,4,41]
@@ -61,9 +61,9 @@ class AudioModel3D(nn.Module):
         heatmap = prediction.view(final_shape[0], final_shape[1], -1) #[64,10,3364]
         heatmap = F.softmax(heatmap / self.temperature, dim=2) #[64,10,3364]
         heatmap = heatmap.view(*final_shape)# #[64,10,58,58]
-
-        out = gaussian2kp(heatmap)#得到value，[64,10,2]
-        out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2) #[1,64,10,2]
+        if self.estimate_kpvalue:
+            out = gaussian2kp(heatmap)#得到value，[64,10,2]
+            out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2) #[1,64,10,2]
         if self.jacobian is not None:
             jacobian_map = self.jacobian(feature_map.permute(0,2,1,3,4).reshape(-1, feature_shape[1],feature_shape[3],feature_shape[4]))
 
