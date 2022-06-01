@@ -148,7 +148,7 @@ def main(args):
         audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks,
                                 max_features=args.AudioModel_max_features, num_kp=args.num_kp, estimate_kpvalue=False).to(device)
 
-        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-6_19_0.32327.pth")
+        train_check = torch.load("/home/user/Database/audio_data_girl/use_checkpoint/girl_onestage.pth")
         # audio2kp.load_state_dict(checkpoint["audio2kp"])
         # audio2kp.load_state_dict(train_check)
         model_dict = audio2kp.state_dict()
@@ -179,8 +179,6 @@ def main(args):
             loss.backward()
             optimizer.step()
             print(loss.item(), train_interation)
-
-
         audio2kp.eval()
         test_loss = 0
         num = 0
@@ -198,7 +196,7 @@ def main(args):
                 loss = calculate_loss(kpjacobians, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-                print("test",loss.item())
+                print("test", loss.item())
         torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_jacobian", '2e-4_jiacobian_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
@@ -208,10 +206,10 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=False)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=10)
-    parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
-    parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")
-    parser.add_argument("--test_datapath", default=r"/home/ssd1/Database/audio2head/test")
+    parser.add_argument("--batch_size", default=6)
+    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
+    parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
+    parser.add_argument("--test_datapath", default=r"./data/audio_data_girl/audio_train")
     parser.add_argument("--pad_feature_root", default=r"/home/ssd1/Database/audio2head/wav_16_feature")
     parser.add_argument("--epochs", default=200)
     parser.add_argument("--config", default="./config/parameters.yaml")

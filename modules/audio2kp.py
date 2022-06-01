@@ -65,6 +65,8 @@ class AudioModel3D(nn.Module):
             out = gaussian2kp(heatmap)#得到value，[64,10,2]
             out["value"] = out["value"].reshape(-1,self.seq_len,self.num_kp,2) #[1,64,10,2]
         if self.jacobian is not None:
+            if not self.estimate_kpvalue:
+                out = {}
             jacobian_map = self.jacobian(feature_map.permute(0,2,1,3,4).reshape(-1, feature_shape[1],feature_shape[3],feature_shape[4]))
 
             jacobian_map = jacobian_map.reshape(final_shape[0], self.num_jacobian_maps, 4, final_shape[2],

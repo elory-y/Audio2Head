@@ -12,10 +12,10 @@ import random
 from skimage import io, img_as_float32
 from modules.keypoint_detector import KPDetector
 import os
-# import wandb
+import wandb
 
 
-# wandb.init(entity="suimang", project="kypoint_value", name="v1_2e-4")
+wandb.init(entity="suimang", project="kypoint_value", name="v1_2e-4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -88,19 +88,19 @@ def calculate_loss(kpvalues, gen_kp, paddings, loss_function, interation, istrai
     # jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
     # loss = 10 * kp_loss + 10 * jacobian_loss + jacobian_map_loss
     loss = 100 * kp_loss
-    # if istrain == True:
-    #     wandb.log({"train_kp_loss": 100*kp_loss.item()}, step=interation)
-    #     # wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-    #     # wandb.log({"train_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
-    #     # wandb.log({"train_total_loss": loss.item()}, step=interation)
-    #     # with open("train_1oss.txt", "a+") as f:
-    #     #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
-    #     # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
-    # else:
-    #     wandb.log({"test_kp_loss": 100 * kp_loss.item()}, step=interation)
-    #     # wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-    #     # wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
-    #     # wandb.log({"test_total_loss": loss.item()}, step=interation)
+    if istrain == True:
+        wandb.log({"train_kp_loss": 100*kp_loss.item()}, step=interation)
+        # wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        # wandb.log({"train_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
+        # wandb.log({"train_total_loss": loss.item()}, step=interation)
+        # with open("train_1oss.txt", "a+") as f:
+        #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
+        # print("train_kp_loss %s train_jacobian_loss %s  totalloss %s" % (10 * kp_loss.item(), 10 * jacobian_loss.item(), loss.item()))
+    else:
+        wandb.log({"test_kp_loss": 100 * kp_loss.item()}, step=interation)
+        # wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
+        # wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
+        # wandb.log({"test_total_loss": loss.item()}, step=interation)
     #
     #     # with open("test_loss.txt", "a+") as f:
     #     #     f.write("test_kp_loss %s test_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
@@ -209,7 +209,7 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=False)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=2)
+    parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/user/Database/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/user/Database/audio_data_girl/audio_test")
