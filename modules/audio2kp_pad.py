@@ -23,7 +23,7 @@ class AudioModel3d_pad(nn.Module):
         #                                nn.ReLU(inplace=True),
         #                                nn.Conv2d(8, 2, (13, 13), stride=(1, 1), padding=(6, 6)))
 
-        num_channels = 6
+        num_channels = 5
         self.predictor = Hourglass3D(block_expansion, in_features=num_channels,
                                      max_features=max_features, num_blocks=num_blocks)
 
@@ -58,12 +58,12 @@ class AudioModel3d_pad(nn.Module):
         """
         x["audio"] = F.interpolate(x["audio"].squeeze(1).permute(0, 2, 1), 64).reshape(bs, 32, 64, 64).permute(0,3,1,2)
         audio_embedding_zheng = F.interpolate(x["audio"], (64, 64)).unsqueeze(1)
-        audio_embedding_fan = torch.flip(audio_embedding_zheng, [2, 3])#对后两个维度取反
-        audio_embedding = torch.cat((audio_embedding_zheng, audio_embedding_fan), dim=1)
+        # audio_embedding_fan = torch.flip(audio_embedding_zheng, [2, 3])#对后两个维度取反
+        # audio_embedding = torch.cat((audio_embedding_zheng, audio_embedding_fan), dim=1)
         id_feature = self.down_id(x["id_img"])  # [1,3,64,64]
         pose_feature = self.down_pose(x["pose"])
         embeddings = torch.cat(
-            [audio_embedding, id_feature.unsqueeze(2).repeat(1, 1, self.seq_len, 1, 1), pose_feature.unsqueeze(1)],
+            [audio_embedding_zheng, id_feature.unsqueeze(2).repeat(1, 1, self.seq_len, 1, 1), pose_feature.unsqueeze(1)],
             dim=1)  # [1,6,64,64,64]
         feature_map = self.predictor(embeddings)
         feature_shape = feature_map.shape  # [1,38,64,64,64]
@@ -123,13 +123,13 @@ if __name__ == "__main__":
     parser.add_argument("--kp_dete_temperature", default=0.1)
     args = parser.parse_args()
     x = {}
-    x["audio"] = torch.rand([2,86,2048]).cuda()#(bs,frame*4*3)
+    x["audio"] = torch.rand([2,1,86,2048]).cuda()#(bs,frame*4*3)
     x["id_img"] = torch.rand([2,3,256,256]).cuda()
     x["pose"] = torch.rand([2,64,256,256]).cuda()
     model = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).cuda()
-    check = torch.load("/home/caopu/workspace/Audio2Head/2e-5_62_58.06258.pth")
+    check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-6_19_0.32327.pth")
     mode_dict = model.state_dict()
-    pretraind_dic = {k: v for k, v in check.items() if k in mode_dict}
+    pretraind_dic = {k: v for k, v in check.items() if k in mode_dict and mode_dict[k].shape == v.shape}
     mode_dict.update(pretraind_dic)
     model.load_state_dict(mode_dict)
     a = model(x)
