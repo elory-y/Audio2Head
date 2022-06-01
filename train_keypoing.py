@@ -199,7 +199,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=12)
+    parser.add_argument("--batch_size", default=2)
     parser.add_argument("--model_path", default=r"/home/user/Database/fomm/log2/00000012-checkpoint.pth.tar",
                         help="pretrained model path")
     parser.add_argument("--train_source", default=r"/home/user/Database/fomm/train")

@@ -13,7 +13,7 @@ from modules.generator import OcclusionAwareGenerator
 from modules.keypoint_detector import KPDetector
 from modules.audio2kp import AudioModel3D
 import yaml,os,imageio
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 def draw_annotation_box( image, rotation_vector, translation_vector, color=(255, 255, 255), line_width=2):
     """Draw a 3D box as annotation of pose"""
 
@@ -121,7 +121,7 @@ def audio2head(audio_path, img_path, save_path):
     # temp_audio="./results/temp.wav"
     # command = ("ffmpeg -y -i %s -async 1 -ac 1 -vn -acodec pcm_s16le -ar 16000 %s" % (audio_path, temp_audio))
     # output = subprocess.call(command, shell=True, stdout=None)
-    model_path = r"./checkpoint/audio2head.pth.tar"
+    model_path = r"/home/ssd1/Database/audio2head/audio2head.pth.tar"
     audio_feature = get_audio_feature_from_audio(audio_path)
     frames = len(audio_feature) // 4
 
@@ -145,17 +145,18 @@ def audio2head(audio_path, img_path, save_path):
                                         **config['model_params']['common_params'])
     kp_detector = kp_detector.cuda()
     generator = generator.cuda()
-    new_check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
-    new_check = torch.load(new_check_path)
+    # new_check_path = "/home/user/Database/audio2head/fomm_checkpoint3/1_5_526.53601.pth"
+    # new_check_path = "/home/user/Database/audio_data_girl/girl_checkpoint/1e-6_2_0.41743.pth"
+    # new_check = torch.load(new_check_path)
     opt = argparse.Namespace(**yaml.safe_load(open("./config/parameters.yaml")))
     audio2kp = AudioModel3D(seq_len=parse.seq_len, block_expansion=parse.AudioModel_block_expansion,
                             num_blocks=parse.AudioModel_num_blocks, max_features=parse.AudioModel_max_features,
                             num_kp=parse.num_kp).cuda()
 
-    checkpoint  = torch.load(model_path)
+    checkpoint = torch.load(model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     generator.load_state_dict(checkpoint["generator"])
-    audio2kp.load_state_dict(new_check)
+    audio2kp.load_state_dict(checkpoint["audio2kp"])
 
     generator.eval()
     kp_detector.eval()
@@ -167,7 +168,9 @@ def audio2head(audio_path, img_path, save_path):
     for i in range(0, frames, opt.seq_len // 2):
         temp_audio = []
         temp_pos = []
+
         for j in range(opt.seq_len):
+
             if i + j < frames:
                 temp_audio.append(audio_feature[(i+j)*4:(i+j)*4+4])
                 trans = ref_pose_trans[i + j]
@@ -191,6 +194,7 @@ def audio2head(audio_path, img_path, save_path):
     total_frames = 0
     
     for bs_idx in range(bs):
+
         t = {}
 
         t["audio"] = audio_f[:, bs_idx].cuda()
@@ -243,8 +247,8 @@ def audio2head(audio_path, img_path, save_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audio_path",default=r"/home/caopu/workspace/Audio2Head/demo/audio/id1_00736_new.wav",help="audio file sampled as 16k hz")
-    parser.add_argument("--img_path",default=r"/home/caopu/workspace/audio-old/demo/img/gangqiang.jpg", help="reference image")
+    parser.add_argument("--audio_path",default=r"/home/ssd1/Database/audio2head/test/id1_00001.wav",help="audio file sampled as 16k hz")
+    parser.add_argument("--img_path",default=r"/home/ssd2/suimang/project/Audio2Head/demo/img/gangqiang.png", help="reference image")
     parser.add_argument("--save_path",default=r"./results", help="save path")
     parser.add_argument("--model_path",default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--frames", default=64)
