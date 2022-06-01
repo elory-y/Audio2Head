@@ -9,6 +9,9 @@
           </advancedOptions>
         </fileTransfer>
       </webServer>
+      <webServer id="5a346ab7-7291-4284-9de6-016b19a93641" name="suimang@asus.sariel021.com:918 password (2)">
+        <fileTransfer accessType="SFTP" host="asus.sariel021.com" port="918" sshConfigId="c5db0b52-cd93-42ae-a603-2c1601110633" sshConfig="suimang@asus.sariel021.com:918 password" />
+      </webServer>
     </option>
   </component>
 </project>

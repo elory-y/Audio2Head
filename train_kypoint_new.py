@@ -147,14 +147,15 @@ def main(args):
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                                shuffle=True, num_workers=0)
         audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp).to(device)
-        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-4_76_0.49639.pth")
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-6_19_0.32327.pth")
         # audio2kp.load_state_dict(checkpoint["audio2kp"])
         audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+    # scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+    scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
     # log_writer = SummaryWriter()
-    train_interation = 0
+    train_interation = 2194
     test_interation = 0
     for epoch in range(args.epochs):
         audio2kp.train()
@@ -191,7 +192,7 @@ def main(args):
                 loss = calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, loss_function, test_interation, istrain=False)
                 test_loss += loss.item()
                 num += 1
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check", '2e-6_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check", '2e-7_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
@@ -199,8 +200,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=12)
+    parser.add_argument("--lr", default=2.0e-7)
+    parser.add_argument("--batch_size", default=10)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")
     parser.add_argument("--test_datapath", default=r"/home/ssd1/Database/audio2head/test")
