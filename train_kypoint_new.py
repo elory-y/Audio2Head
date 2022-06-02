@@ -133,12 +133,12 @@ def main(args):
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                 num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                                 num_kp=args.num_kp).to(device)
-        # train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check/2e-7—s_10_0.31557.pth")
-        # audio2kp.load_state_dict(train_check)
-        model_dict = audio2kp.state_dict()
-        pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict and model_dict[k].shape == v.shape}
-        model_dict.update(pretraind_dic)
-        audio2kp.load_state_dict(model_dict)
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/audio_check_channel_5/2e-4—s_126_0.51055.pth")
+        audio2kp.load_state_dict(train_check)
+        # model_dict = audio2kp.state_dict()
+        # pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict and model_dict[k].shape == v.shape}
+        # model_dict.update(pretraind_dic)
+        # audio2kp.load_state_dict(model_dict)
     else:
         train_dataset = KeyPoint_Data(root_dir=args.train_datapath, frames=64, model_path=args.model_path)
         test_dataset = KeyPoint_Data(root_dir=args.test_datapath, frames=64, model_path=args.model_path)
@@ -155,7 +155,7 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
     # log_writer = SummaryWriter()
-    train_interation = 0
+    train_interation = 16868
     test_interation = 0
     for epoch in range(args.epochs):
         audio2kp.train()
@@ -193,7 +193,7 @@ def main(args):
                 test_loss += loss.item()
                 num += 1
                 print("test",loss.item())
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check_channel_5", '2e-4—s_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/audio_check_channel_5", '1e-5—s_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--lr", default=1.0e-5)
     parser.add_argument("--batch_size", default=10)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd1/Database/audio2head/train")

@@ -148,7 +148,7 @@ def main(args):
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                                shuffle=True, num_workers=0)
         audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features, num_kp=args.num_kp, estimate_jacobian=False).to(device)
-        train_check = torch.load("/home/user/Database/audio_data_girl/use_checkpoint/girl_onestage.pth")
+        train_check = torch.load("/home/user/Database/audio_data_girl/girl_kpvalue/5e-3_kypoint_63_0.59138.pth")
         # audio2kp.load_state_dict(checkpoint["audio2kp"])
         model_dict = audio2kp.state_dict()
         pretraind_dic = {k: v for k, v in train_check.items() if
@@ -161,7 +161,7 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
     # log_writer = SummaryWriter()
-    train_interation = 0
+    train_interation = 14891
     test_interation = 0
     for epoch in range(args.epochs):
         audio2kp.train()
