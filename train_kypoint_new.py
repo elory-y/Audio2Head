@@ -86,11 +86,11 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_map_loss = (jacobian_map_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 10 * jacobian_loss + jacobian_map_loss
+    loss = 10 * kp_loss + 10 * jacobian_loss + 0*jacobian_map_loss
     if istrain == True:
         wandb.log({"train_kp_loss": 10*kp_loss.item()}, step=interation)
         wandb.log({"train_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-        wandb.log({"train_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
+        # wandb.log({"train_jacobian_map_loss": jacobian_map_loss.item()}, step=interation)
         wandb.log({"train_total_loss": loss.item()}, step=interation)
         # with open("train_1oss.txt", "a+") as f:
         #     f.write("train_kp_loss %s train_jacobian_loss %s " % (10 * kp_loss.item(), 10 * jacobian_loss.item()) + "\n")
@@ -98,7 +98,7 @@ def calculate_loss(kpvalues, kpjacobians, lab_kpjacobian_map, gen_kp, paddings, 
     else:
         wandb.log({"test_kp_loss": 10 * kp_loss.item()}, step=interation)
         wandb.log({"test_jacobian_loss": 10 * jacobian_loss.item()}, step=interation)
-        wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
+        # wandb.log({"test_jacobian_map_loss": jacobian_loss.item()}, step=interation)
         wandb.log({"test_total_loss": loss.item()}, step=interation)
 
         # with open("test_loss.txt", "a+") as f:
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=1.0e-4)
+    parser.add_argument("--lr", default=2.0e-5)
     parser.add_argument("--batch_size", default=10)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")

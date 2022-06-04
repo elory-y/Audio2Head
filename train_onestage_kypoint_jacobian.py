@@ -148,7 +148,7 @@ def main(args):
         audio2kp = AudioModel3D(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion, num_blocks=args.AudioModel_num_blocks,
                                 max_features=args.AudioModel_max_features, num_kp=args.num_kp, estimate_kpvalue=False).to(device)
 
-        train_check = torch.load("/home/user/Database/audio_data_girl/girl_jacobian/2e-4_jiacobian_55_2.08827.pth")
+        train_check = torch.load("/home/user/Database/audio_data_girl/girl_jacobian/1e-4_jiacobian_42_1.95264.pth")
         # audio2kp.load_state_dict(checkpoint["audio2kp"])
         # audio2kp.load_state_dict(train_check)
         model_dict = audio2kp.state_dict()
@@ -161,7 +161,7 @@ def main(args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
     # log_writer = SummaryWriter()
-    train_interation = 12515
+    train_interation = 22435
     test_interation = 0
     for epoch in range(args.epochs):
         audio2kp.train()
@@ -197,7 +197,7 @@ def main(args):
                 test_loss += loss.item()
                 num += 1
                 print("test", loss.item())
-        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_jacobian", '1e-4_jiacobian_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/user/Database/audio_data_girl/girl_jacobian", '2e-5_jiacobian_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
@@ -205,7 +205,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=False)
-    parser.add_argument("--lr", default=1.0e-4)
+    parser.add_argument("--lr", default=2.0e-5)
     parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")

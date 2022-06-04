@@ -121,7 +121,7 @@ def audio2head(audio_path, img_path, save_path):
     # temp_audio="./results/temp.wav"
     # command = ("ffmpeg -y -i %s -async 1 -ac 1 -vn -acodec pcm_s16le -ar 16000 %s" % (audio_path, temp_audio))
     # output = subprocess.call(command, shell=True, stdout=None)
-    model_path = r"/home/ssd1/Database/audio2head/audio2head.pth.tar"
+    model_path = r"./checkpoint/audio2head.pth.tar"
     audio_feature = get_audio_feature_from_audio(audio_path)
     frames = len(audio_feature) // 4
 
@@ -247,10 +247,10 @@ def audio2head(audio_path, img_path, save_path):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--audio_path",default=r"/home/ssd1/Database/audio2head/test/id1_00001.wav",help="audio file sampled as 16k hz")
-    parser.add_argument("--img_path",default=r"/home/ssd2/suimang/project/Audio2Head/demo/img/gangqiang.png", help="reference image")
+    parser.add_argument("--audio_path",default=r"/home/user/Database/audio_data_girl/audio_test/00001.wav",help="audio file sampled as 16k hz")
+    parser.add_argument("--img_path",default=r"./demo/img/girl.png", help="reference image")
     parser.add_argument("--save_path",default=r"./results", help="save path")
-    parser.add_argument("--model_path",default=r"./checkpoints/audio2head.pth.tar", help="pretrained model path")
+    parser.add_argument("--model_path",default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--frames", default=64)
     parser.add_argument("--lr", default=2.0e-6)
     parser.add_argument("--batch_size", default=10)
