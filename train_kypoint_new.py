@@ -133,7 +133,7 @@ def main(args):
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                 num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                                 num_kp=args.num_kp).to(device)
-        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/girl_audio_check_channel_5/1e-5—s_123_0.67098.pth")
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/girl_audio_check_channel_5/1e-4—s_24_0.64442.pth")
         audio2kp.load_state_dict(train_check)
         # model_dict = audio2kp.state_dict()
         # pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict and model_dict[k].shape == v.shape}
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=2.0e-5)
+    parser.add_argument("--lr", default=1.0e-5)
     parser.add_argument("--batch_size", default=10)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")

@@ -149,13 +149,13 @@ def main(args):
                                 max_features=args.AudioModel_max_features, num_kp=args.num_kp, estimate_kpvalue=False).to(device)
 
         train_check = torch.load("/home/user/Database/audio_data_girl/girl_jacobian/1e-4_jiacobian_42_1.95264.pth")
-        # audio2kp.load_state_dict(checkpoint["audio2kp"])
-        # audio2kp.load_state_dict(train_check)
-        model_dict = audio2kp.state_dict()
-        pretraind_dic = {k: v for k, v in train_check.items() if
-                         k in model_dict and model_dict[k].shape == v.shape}
-        model_dict.update(pretraind_dic)
-        audio2kp.load_state_dict(model_dict)
+        audio2kp.load_state_dict(checkpoint["audio2kp"])
+        audio2kp.load_state_dict(train_check)
+        # model_dict = audio2kp.state_dict()
+        # pretraind_dic = {k: v for k, v in train_check.items() if
+        #                  k in model_dict and model_dict[k].shape == v.shape}
+        # model_dict.update(pretraind_dic)
+        # audio2kp.load_state_dict(model_dict)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
