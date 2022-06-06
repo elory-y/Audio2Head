@@ -101,7 +101,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
-    parser.add_argument("--lr", default=1.0e-2)
+    parser.add_argument("--lr",  default=1.0e-2)
     parser.add_argument("--batch_size", default=6)
     parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"./data/audio_data_girl/audio_train")
