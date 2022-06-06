@@ -15,7 +15,7 @@ import os
 import wandb
 
 
-wandb.init(entity="suimang", project="ky_predictor_girl_paddle", name="paddle_fantezheng_2e-4")
+wandb.init(entity="suimang", project="key_point_stage1", name="paddle_num6_2e-4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
     imgs = []
@@ -93,11 +93,11 @@ def calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, 
 def wand_curve(kp_loss, jacobian_loss, kppred_fatures_loss, loss, iteration, istrain):
     phase = 'train' if istrain else 'test'
     log_dict = {
-        f'{phase}_kp_loss':  kp_loss.item(),
-        f'{phase}_perceptual_loss':  jacobian_loss.item(),
-        f'{phase}_equivariance_value': kppred_fatures_loss.item(),
-        f'{phase}_equivariance_jacobian_loss':  loss.item(),
-        f'{phase}_loss': loss.item()
+        f'{phase}_kp_loss':  kp_loss,
+        f'{phase}_perceptual_loss':  jacobian_loss,
+        f'{phase}_equivariance_value': kppred_fatures_loss,
+        f'{phase}_equivariance_jacobian_loss':  loss,
+        f'{phase}_loss': loss
     }
     wandb.log(log_dict, step=iteration)
 
@@ -156,9 +156,10 @@ def main(args):
             gen_kp = audio2kp(t)
             train_iteration += 1
             kp_loss, jacobian_loss, kppred_fatures_loss, loss = calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, loss_function)
-            # wand_curve(kp_loss, jacobian_loss, jacobian_map_loss, loss, train_iteration, istrain=True)
             optimizer.zero_grad()
             loss.backward()
+            wand_curve(kp_loss.item(), jacobian_loss.item(), kppred_fatures_loss.item(), loss.item(),
+                       train_iteration, istrain=True)
             optimizer.step()
             print(loss.item(), train_iteration)
         audio2kp.eval()
@@ -184,7 +185,7 @@ def main(args):
                 test_loss += loss.item()
                 num += 1
         print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
-        # wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num, train_iteration,istrain=False)
+        wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num, train_iteration,istrain=False)
         torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/fan", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
