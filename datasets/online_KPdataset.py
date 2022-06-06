@@ -153,7 +153,7 @@ class KeyPoint_PaddleAudioData(Dataset):
         poses = np.load(pose_path)
         re = poses[:, :3]
         tra = poses[:, 3:]
-        dic={}
+        dic = {}
         dic["mp4_path"] = mp4_path
         pose_frames = poses.shape[0]
         frames = pose_frames

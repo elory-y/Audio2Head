@@ -57,13 +57,13 @@ def draw_annotation_box(image, rotation_vector, translation_vector, color=(255, 
         point_2d[8]), color, line_width, cv2.LINE_AA)
 
 class Stage2_Dataset(Dataset):
-    def __init__(self, frames, source_root, driving_root, pre_images):
+    def __init__(self, frames, source_root, driving_root, pre_images, istrain):
         self.frames = frames
         self.source_root = source_root
         self.driving_root = driving_root
         self.pre_images = pre_images
         self.source_lis = glob.glob(os.path.join(self.source_root, "*"))
-
+        self.istrain = istrain
     def __len__(self):
         return len(self.source_lis)
 
@@ -86,7 +86,10 @@ class Stage2_Dataset(Dataset):
         audio_frames = len(audio_feature) // 4
         pose_frames = poses.shape[0]
         frames = min(audio_frames, pose_frames)
-        star_frame = random.randint(0, max(0, frames - self.frames-2))
+        if self.istrain:
+            star_frame = random.randint(0, max(0, frames - self.frames-2))
+        else:
+            star_frame = 0
         end_frame = star_frame + self.frames
         audio_feature = audio_feature[star_frame * 4: end_frame * 4, :]
         assert audio_feature.shape == (256, 41)
@@ -121,14 +124,14 @@ class Stage2_Dataset(Dataset):
 
 
 class Stage2_PaddleAudioData(Dataset):
-    def __init__(self, frames, source_root, driving_root, pre_images, pad_feature_root):
+    def __init__(self, frames, source_root, driving_root, pre_images, pad_feature_root, istrain):
         self.frames = frames
         self.source_root = source_root
         self.driving_root = driving_root
         self.pre_images = pre_images
         self.source_lis = glob.glob(os.path.join(self.source_root, "*"))
         self.pad_feature_root = pad_feature_root
-
+        self.istrain = istrain
     def __len__(self):
         return len(self.source_lis)
 
@@ -149,9 +152,12 @@ class Stage2_PaddleAudioData(Dataset):
         dic = {}
         pose_frames = poses.shape[0]
         frames = pose_frames
-        star_frame = random.randint(0, max(0, frames - self.frames-2))
+        if self.istrain:
+            star_frame = random.randint(0, max(0, frames - self.frames-2))
+        else:
+            star_frame = 0
         end_frame = star_frame + self.frames
-        audio_feature = audio_feature[int(star_frame * 4 // 3): int(star_frame * 4 // 3) + 86, :]
+        audio_feature = audio_feature[:, int(star_frame * 4 // 3): int(star_frame * 4 // 3) + 86, :]
         re = re[star_frame: end_frame, :]
         tra = tra[star_frame: end_frame, :]
         total_poses = []
