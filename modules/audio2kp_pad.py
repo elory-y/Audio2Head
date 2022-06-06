@@ -67,8 +67,7 @@ class AudioModel3d_pad(nn.Module):
         feature_map = self.predictor(embeddings)
         feature_shape = feature_map.shape  # [1,38,64,64,64]
         prediction = self.kp(feature_map).permute(0, 2, 1, 3, 4)  # [1,64,10,58,58]
-        prediction = prediction.reshape(-1, prediction.shape[2], prediction.shape[3],
-                                        prediction.shape[4])  # [64,10,58,58]
+        prediction = prediction.reshape(-1, prediction.shape[2], prediction.shape[3],prediction.shape[4])  # [64,10,58,58]
         final_shape = prediction.shape  # [64,10,58,58]
         heatmap = prediction.view(final_shape[0], final_shape[1], -1)  # [64,10,3364]
         heatmap = F.softmax(heatmap / self.temperature, dim=2)  # [64,10,3364]
