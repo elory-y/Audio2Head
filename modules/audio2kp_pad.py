@@ -37,7 +37,6 @@ class AudioModel3d_pad(nn.Module):
             self.jacobian.bias.data.copy_(torch.tensor([1, 0, 0, 1] * self.num_jacobian_maps, dtype=torch.float))
         else:
             self.jacobian = None
-
         self.temperature = 0.1
 
     def forward(self, x):
