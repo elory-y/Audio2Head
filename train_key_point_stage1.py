@@ -87,17 +87,17 @@ def calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, 
     kp_loss = (kp_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     jacobian_loss = (jacobian_loss.flatten(2).mean(-1) * paddings).sum() / total_frames
     kppred_fatures_loss = (kppred_fatures_loss.flatten(1).mean(-1) * paddings.view(-1)).sum() / total_frames
-    loss = 10 * kp_loss + 10 * jacobian_loss + kppred_fatures_loss
-    return 10 * kp_loss, 10 * jacobian_loss, kppred_fatures_loss, loss
+    # loss = 10 * kp_loss + 10 * jacobian_loss + kppred_fatures_loss
+    return 10 * kp_loss
 
-def wand_curve(kp_loss, jacobian_loss, kppred_fatures_loss, loss, iteration, istrain):
+def wand_curve(kp_loss, iteration, istrain):
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss':  kp_loss,
-        f'{phase}_perceptual_loss':  jacobian_loss,
-        f'{phase}_equivariance_value': kppred_fatures_loss,
-        f'{phase}_equivariance_jacobian_loss':  loss,
-        f'{phase}_loss': loss
+        # f'{phase}_perceptual_loss':  jacobian_loss,
+        # f'{phase}_equivariance_value': kppred_fatures_loss,
+        # f'{phase}_equivariance_jacobian_loss':  loss,
+        # f'{phase}_loss': loss
     }
     wandb.log(log_dict, step=iteration)
 
@@ -122,12 +122,12 @@ def main(args):
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                 num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                                 num_kp=args.num_kp).to(device)
-        # train_check = torch.load("/home/ssd2/suimang/project/checkpoint/qufan/2e-4_71_0.78505.pth")
-        # audio2kp.load_state_dict(train_check)
-        model_dict = audio2kp.state_dict()
-        pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict and model_dict[k].shape == v.shape}
-        model_dict.update(pretraind_dic)
-        audio2kp.load_state_dict(model_dict)
+        train_check = torch.load("/home/ssd2/suimang/project/checkpoint/kpmap_channel6/2e-4_75_0.59149.pth")
+        audio2kp.load_state_dict(train_check)
+        # model_dict = audio2kp.state_dict()
+        # pretraind_dic = {k: v for k, v in checkpoint["audio2kp"].items() if k in model_dict and model_dict[k].shape == v.shape}
+        # model_dict.update(pretraind_dic)
+        # audio2kp.load_state_dict(model_dict)
     else:
         train_dataset = KeyPoint_Data(root_dir=args.train_datapath, frames=64, model_path=args.model_path)
         test_dataset = KeyPoint_Data(root_dir=args.test_datapath, frames=64, model_path=args.model_path)
@@ -141,9 +141,9 @@ def main(args):
         # audio2kp.load_state_dict(train_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=9805)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
-    train_iteration = 0
+    train_iteration = 9805
     for epoch in range(args.epochs):
         audio2kp.train()
         for i, dic in enumerate(train_data):
@@ -155,10 +155,10 @@ def main(args):
             t["id_img"] = imgs.to(device)
             gen_kp = audio2kp(t)
             train_iteration += 1
-            kp_loss, jacobian_loss, kppred_fatures_loss, loss = calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, loss_function)
+            loss = calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, loss_function)
             optimizer.zero_grad()
             loss.backward()
-            wand_curve(kp_loss.item(), jacobian_loss.item(), kppred_fatures_loss.item(), loss.item(),
+            wand_curve(loss.item(),
                        train_iteration, istrain=True)
             optimizer.step()
             print(loss.item(), train_iteration)
@@ -178,14 +178,14 @@ def main(args):
                 t["pose"] = poses.type(torch.FloatTensor).to(device)
                 t["id_img"] = imgs.to(device)
                 gen_kp = audio2kp(t)
-                kp_loss, jacobian_loss, kppred_fatures_loss, loss = calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, loss_function)
-                test_kp_loss += kp_loss.item()
-                test_jacobian_loss += jacobian_loss.item()
-                test_jacobian_map_loss += kppred_fatures_loss.item()
+                loss = calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, loss_function)
+                # test_kp_loss += kp_loss.item()
+                # test_jacobian_loss += jacobian_loss.item()
+                # test_jacobian_map_loss += kppred_fatures_loss.item()
                 test_loss += loss.item()
                 num += 1
-        print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
-        wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num, train_iteration,istrain=False)
+        # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
+        wand_curve(test_loss/num, train_iteration,istrain=False)
         torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/kpmap_channel6", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
