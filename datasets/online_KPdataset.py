@@ -225,17 +225,17 @@ class FaceformerData(Dataset):
         dic["mp4_path"] = mp4_path
         pose_frames = poses.shape[0]
         frames = pose_frames
-        if frames > self.frames + 1:
-            if self.istrain:
-                star_frame = random.randint(1, max(1, frames - self.frames-2))
+        if frames >= self.frames :
+            if self.istrain and frames != self.frames:
+                star_frame = random.randint(0, max(0, frames - self.frames))
             else:
                 star_frame = 0
             end_frame = star_frame + self.frames
-            audio_feature = audio_feature[:, int(star_frame * 4 // 3): int(star_frame * 4 // 3) + 86, :]
+            audio_feature = audio_feature[:, int(star_frame * 4 // 3): int(star_frame * 4 // 3) + 128, :]
             re = re[star_frame : end_frame , :]
             tra = tra[star_frame: end_frame, :]
             total_poses = []
-            for i in range(64):
+            for i in range(96):
                 trans = tra[i, :]
                 rot = re[i, :]
                 pose = np.zeros([256, 256])
@@ -244,12 +244,12 @@ class FaceformerData(Dataset):
             dic["star_frame"] = star_frame
             dic["pad"] = 0
         else:
-            star_frame = 1
+            star_frame = 0
             end_frame = frames
             pad_frame = self.frames - end_frame
-            pad_audio_frame = 86 - int(star_frame * 4 // 3)
+            pad_audio_frame = 128 - audio_feature.shape[1]
             pad_audio = torch.zeros((1, pad_audio_frame, 2048))
-            audio_feature = np.concatenate((audio_feature[:, int(star_frame * 4 // 3):, :], pad_audio))
+            audio_feature = np.concatenate((audio_feature, pad_audio), axis=1)
             total_poses = []
             pad_pose = torch.zeros((pad_frame, 3))
             re = np.concatenate((re[star_frame:end_frame, :], pad_pose))

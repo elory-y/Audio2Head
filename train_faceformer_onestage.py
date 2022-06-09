@@ -15,9 +15,9 @@ import os
 import wandb
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4")
+wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4_batch256")
 
-def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'):
+def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
     kpjacobians = []
     paddings = []
@@ -32,7 +32,7 @@ def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'
         while cap.isOpened():
             success, get_img = cap.read()
             if success:
-                if num_frame in range(star_frame[number].item()-1, star_frame[number].item() + frames):
+                if num_frame in range(star_frame[number].item(), star_frame[number].item() + frames):
                     get_img = get_img[..., ::-1]
                     get_img = cv2.resize(get_img, (256, 256))
                     get_img = np.array(img_as_float32(get_img))
@@ -98,8 +98,8 @@ def main(args):
     checkpoint = torch.load(args.model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     kp_detector.eval()
-    train_dataset = FaceformerData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"), istrain=True)
-    test_dataset = FaceformerData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"), istrain=False)
+    train_dataset = FaceformerData(root_dir=args.train_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"), istrain=True)
+    test_dataset = FaceformerData(root_dir=args.test_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"), istrain=False)
     train_data = DataLoader(train_dataset, batch_size=args.batch_size,
                             shuffle=True, num_workers=0)
     test_data = DataLoader(test_dataset, batch_size=args.batch_size,
@@ -122,9 +122,9 @@ def main(args):
         for i, dic in enumerate(train_data):
             mp4_paths, audio_feature, poses, pad, star_frame = dic["mp4_path"], dic["audio_features"], dic["poses"], dic["pad"], dic["star_frame"]
             kpvalues, kpjacobians, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame, kp_detector=kp_detector, pad=pad)
-            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), source_kp=kpvalues[:, :1], source_jac=kpjacobians[:, :1], driving_kp=kpvalues[:, 1:], driving_jac=kpjacobians[:, 1:])
+            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians)
             train_iteration += 1
-            kp_loss, jacobian_loss, loss = calculate_loss(kpvalues[:, 1:], kpjacobians[:, 1:], infer_kpvalue, infer_jacobian, paddings, loss_function)
+            kp_loss, jacobian_loss, loss = calculate_loss(kpvalues, kpjacobians, infer_kpvalue, infer_jacobian, paddings, loss_function)
             optimizer.zero_grad()
             loss.backward()
             wand_curve(kp_loss.item(), jacobian_loss.item(), loss.item(),
@@ -143,26 +143,24 @@ def main(args):
                 kpvalues, kpjacobians, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame,
                                                              kp_detector=kp_detector, pad=pad)
 
-                infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device),
-                                                         source_kp=kpvalues[:, :1], source_jac=kpjacobians[:, :1],
-                                                         driving_kp=kpvalues[:, 1:], driving_jac=kpjacobians[:, 1:])
-                kp_loss, jacobian_loss, loss = calculate_loss(kpvalues[:, 1:], kpjacobians[:, 1:], infer_kpvalue, infer_jacobian, paddings, loss_function)
+                infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians)
+                kp_loss, jacobian_loss, loss = calculate_loss(kpvalues, kpjacobians, infer_kpvalue, infer_jacobian, paddings, loss_function)
                 test_kp_loss += kp_loss.item()
                 test_jacobian_loss += jacobian_loss.item()
                 test_loss += loss.item()
                 num += 1
         # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
-        wand_curve(test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/kpmap_channel6", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument("--frames", default=64)
+    parser.add_argument("--frames", default=96)
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=10)
+    parser.add_argument("--batch_size", default=256)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test")
