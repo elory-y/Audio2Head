@@ -169,7 +169,7 @@ class Stage2_PaddleAudioData(Dataset):
             total_poses.append(pose)
         source_img = []
         source_img_lis = source_imgs_lis[star_frame:star_frame + self.pre_images]
-        star_img = cv2.imread(source_imgs_lis[star_frame])
+        star_img = cv2.imread(source_imgs_lis[star_frame])[..., ::-1]
         star_img = np.array(img_as_float32(star_img))
         star_img = star_img.transpose((2, 0, 1))
         for img_path in source_img_lis:

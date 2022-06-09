@@ -19,9 +19,9 @@ from datasets.stage2_dataset import Stage2_Dataset, Stage2_PaddleAudioData
 from torch.nn.parallel import DistributedDataParallel
 import wandb
 import os
-# os.environ["CUDA_VISIBLE_DEVICES"] = "2"
-
-wandb.init(entity="suimang", project="ky_predictor_fomm_2stage", name="boy_5e-2_pre10")
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+#
+wandb.init(entity="suimang", project="paddle_2stage", name="famale_2e-4")
 
 
 def preapare_kypoint(imgs, KPDetector):
@@ -69,12 +69,12 @@ def run(args, generator, kp_detector, audio2kp, device):
                                         loss_weights=args.generator_loss_weights)
     if args.paddle_audio:
         train_dataset = Stage2_PaddleAudioData(source_root=args.train_source, driving_root=args.train_driving, frames=64,
-                                       pre_images=args.pre_images, pad_feature_root=args.pad_feature_root)
+                                       pre_images=args.pre_images, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"), istrain=True)
         scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
         train_data = DataLoader(train_dataset, batch_size=args.batch_size,
                                 shuffle=True, num_workers=0)
         test_dataset = Stage2_PaddleAudioData(source_root=args.test_source, driving_root=args.test_driving, frames=64,
-                                      pre_images=args.pre_images, pad_feature_root=args.pad_feature_root)
+                                      pre_images=args.pre_images, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"), istrain=False)
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
                                shuffle=True, num_workers=0)
     else:
@@ -153,7 +153,7 @@ def main(args):
         audio2kp = AudioModel3d_pad(seq_len=args.seq_len, block_expansion=args.AudioModel_block_expansion,
                                     num_blocks=args.AudioModel_num_blocks, max_features=args.AudioModel_max_features,
                                     num_kp=args.num_kp).to(device)
-        train_check = torch.load("/home/user/Database/audio_data_girl/girl_checkpoint/2e-5_58_0.42058.pth")
+        train_check = torch.load("/home/user/Database/audio_data_girl/ky_point_olddata/1e-4_key_42_0.46152.pth")
         model_dict = audio2kp.state_dict()
         pretraind_dic = {k: v for k, v in train_check.items() if k in model_dict}
         model_dict.update(pretraind_dic)
@@ -186,20 +186,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=5.0e-2)
+    parser.add_argument("--lr", default=2.0e-4)
     parser.add_argument("--batch_size", default=2)
-    parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar",
+    parser.add_argument("--model_path", default=r"./checkpoint/audio2head.pth.tar",
                         help="pretrained model path")
-    parser.add_argument("--pad_feature_root", default=r"/home/ssd1/Database/audio2head/wav_16_feature")
-    parser.add_argument("--train_source", default=r"/home/ssd1/Database/fomm/train")
-    parser.add_argument("--test_source", default=r"/home/ssd1/Database/fomm/test")
-    parser.add_argument("--train_driving", default=r"./data/boy_data")
-    parser.add_argument("--test_driving", default=r"./data/boy_data")
-    parser.add_argument("--epochs", default=2000)
+    parser.add_argument("--pad_feature_root", default=r"/home/user/Database/audio_data_girl")
+    parser.add_argument("--train_source", default=r"/home/user/Program/famale_fomm_data/fomm_data_girl/train")
+    parser.add_argument("--test_source", default=r"/home/user/Program/famale_fomm_data/fomm_data_girl/test")
+    parser.add_argument("--train_driving", default=r"/home/user/Database/audio_data_girl/")
+    parser.add_argument("--test_driving", default=r"/home/user/Database/audio_data_girl/")
+    parser.add_argument("--epochs", default=200)
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
-    parser.add_argument("--pre_images", default=12)
+    parser.add_argument("--pre_images", default=5)
     parser.add_argument("--AudioModel_num_blocks", default=5, help="AudioModel3D model num_blocks")
     parser.add_argument("--AudioModel_max_features", default=512, help="AudioModel3D model max_features")
     parser.add_argument("--estimate_jacobian", default=True)

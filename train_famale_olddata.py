@@ -94,10 +94,9 @@ def wand_curve(kp_loss, jacobian_loss, kppred_fatures_loss, loss, iteration, ist
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss':  kp_loss,
-        f'{phase}_perceptual_loss':  jacobian_loss,
-        f'{phase}_equivariance_value': kppred_fatures_loss,
-        f'{phase}_equivariance_jacobian_loss':  loss,
-        f'{phase}_loss': loss
+        f'{phase}_kpjacobians':  jacobian_loss,
+        f'{phase}_kppred_fatures_loss': kppred_fatures_loss,
+        f'{phase}_total_loss':  loss,
     }
     wandb.log(log_dict, step=iteration)
 
