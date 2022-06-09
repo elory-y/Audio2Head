@@ -151,7 +151,7 @@ def main(args):
                 num += 1
         # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
         wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
