@@ -15,7 +15,7 @@ import os
 import wandb
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim128")
+wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
@@ -151,7 +151,7 @@ def main(args):
                 num += 1
         # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
         wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_4", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
@@ -171,7 +171,7 @@ if __name__ == '__main__':
     parser.add_argument("--num_kp", default=10)
     parser.add_argument("--vertice_dim", type=int, default=60)
     parser.add_argument("--period", type=int, default=30)
-    parser.add_argument("--feature_dim", type=int, default=128)
+    parser.add_argument("--feature_dim", type=int, default=64)
     parser.add_argument("--estimate_jacobian", default=True)
     parser.add_argument("--kp_dete_block_expansion", default=32)
     parser.add_argument("--num_channels", default=3)
