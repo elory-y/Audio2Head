@@ -13,7 +13,7 @@ from skimage import io, img_as_float32
 from modules.keypoint_detector import KPDetector
 import os
 import wandb
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
 wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer4")
 
