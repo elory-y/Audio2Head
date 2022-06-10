@@ -100,11 +100,11 @@ def main(args):
                            shuffle=True, num_workers=0)
     audio2kp = Faceformer(args, device=device).to(device)
     faceformer_check = torch.load(args.faceformer_checkpoint)
-    model_dict = audio2kp.state_dict()
-    pretraind_dic = {k: v for k, v in faceformer_check.items() if
-                     k in model_dict and model_dict[k].shape == v.shape}
-    model_dict.update(pretraind_dic)
-    audio2kp.load_state_dict(model_dict)
+    # model_dict = audio2kp.state_dict()
+    # pretraind_dic = {k: v for k, v in faceformer_check.items() if
+    #                  k in model_dict and model_dict[k].shape == v.shape}
+    # model_dict.update(pretraind_dic)
+    audio2kp.load_state_dict(faceformer_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     # optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
