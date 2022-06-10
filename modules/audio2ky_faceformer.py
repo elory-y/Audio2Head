@@ -58,11 +58,12 @@ class PeriodicPositionalEncoding(nn.Module):
         x = x + self.pe[:, :x.size(1), :]
         return self.dropout(x)
 class EncoderMap(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(EncoderMap, self).__init__()
         self.up_kp = nn.Linear(20, 64)
         self.up_jac = nn.Linear(40, 64)
         self.down = nn.Linear(128, 64)
+        self.feature_dim = args.feature_dim
     def forward(self, key_point, jacobian):
         bs, frame, _, _ =key_point.shape
         key_point = key_point.reshape(bs, frame, -1)
@@ -70,11 +71,14 @@ class EncoderMap(nn.Module):
         up_key_point = F.gelu(self.up_kp(key_point))
         up_jacobian = F.gelu(self.up_jac(jacobian))
         cat_fea = torch.cat((up_key_point, up_jacobian), dim=-1)
-        return self.down(cat_fea)
+        if self.feature_dim == 128:
+            return cat_fea
+        else:
+            return self.down(cat_fea)
 class DecoderMap(nn.Module):
-    def __init__(self):
+    def __init__(self, args):
         super(DecoderMap, self).__init__()
-        self.dw = nn.Linear(64, 60)
+        self.dw = nn.Linear(args.feature_dim, 60)
 
     def forward(self, x):
         x = self.dw(x)
@@ -105,8 +109,8 @@ class Faceformer(nn.Module):
         # motion decoder
         self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         self.device = device
-        self.encodermap = EncoderMap()
-        self.decodermap = DecoderMap()
+        self.encodermap = EncoderMap(args)
+        self.decodermap = DecoderMap(args)
         nn.init.constant_(self.vertice_map_r.weight, 0)
         nn.init.constant_(self.vertice_map_r.bias, 0)
 

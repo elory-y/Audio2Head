@@ -15,7 +15,7 @@ import os
 import wandb
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer1")
+wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim128_layer1")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
@@ -150,8 +150,8 @@ def main(args):
                 test_loss += loss.item()
                 num += 1
         print(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, test_loss/num)
-        # wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_1", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
