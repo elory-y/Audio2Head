@@ -99,20 +99,20 @@ class Faceformer(nn.Module):
         # self.audio_encoder.feature_extractor._freeze_parameters()
         self.audio_feature_map = nn.Linear(2048, args.feature_dim)
         # motion encoder
-        self.vertice_map = nn.Linear(args.vertice_dim, args.feature_dim)
+        # self.vertice_map = nn.Linear(args.vertice_dim, args.feature_dim)
         # periodic positional encoding
         self.PPE = PeriodicPositionalEncoding(args.feature_dim, period=args.period)
         # temporal bias
         self.biased_mask = init_biased_mask(n_head=4, max_seq_len=600, period=args.period)
         decoder_layer = nn.TransformerDecoderLayer(d_model=args.feature_dim, nhead=4, dim_feedforward=2*args.feature_dim, batch_first=True)
-        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=1)
+        self.transformer_decoder = nn.TransformerDecoder(decoder_layer, num_layers=args.num_layers)
         # motion decoder
-        self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
+        # self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         self.device = device
         self.encodermap = EncoderMap(args)
         self.decodermap = DecoderMap(args)
-        nn.init.constant_(self.vertice_map_r.weight, 0)
-        nn.init.constant_(self.vertice_map_r.bias, 0)
+        # nn.init.constant_(self.vertice_map_r.weight, 0)
+        # nn.init.constant_(self.vertice_map_r.bias, 0)
 
     def forward(self, audio_tensor,  kp, jac, teacher_forcing=True):
         hidden_states = self.audio_feature_map(audio_tensor)

@@ -167,7 +167,7 @@ if __name__ == '__main__':
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
-    parser.add_argument("--vertice_dim", type=int, default=60)
+    parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--period", type=int, default=30)
     parser.add_argument("--feature_dim", type=int, default=64)
     parser.add_argument("--estimate_jacobian", default=True)
