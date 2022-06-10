@@ -15,7 +15,7 @@ import os
 import wandb
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim128_layer1")
+
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
@@ -23,33 +23,27 @@ def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'
     paddings = []
     # print(mp4_paths, star_frame)
     for number in range(0, len(mp4_paths)):
-        num_frame = 0
         kpvalue = []
         kpjacobian = []
         kppred_fature = []
         # 读取视频第1帧，预测所有kp、jacobian和特征图
         cap = cv2.VideoCapture(mp4_paths[number])
-        while cap.isOpened():
+        for num_frame in range(star_frame[number].item(), star_frame[number].item() + frames):
+            cap.set(cv2.CAP_PROP_POS_FRAMES, num_frame)
             success, get_img = cap.read()
             if success:
-                if num_frame in range(star_frame[number].item(), star_frame[number].item() + frames):
-                    get_img = get_img[..., ::-1]
-                    get_img = cv2.resize(get_img, (256, 256))
-                    get_img = np.array(img_as_float32(get_img))
-                    get_img = get_img.transpose((2, 0, 1))
-                    get_img = torch.from_numpy(get_img).unsqueeze(0).to(device)
-                    with torch.no_grad():
-                        kp = kp_detector(get_img)
-                        kpvalue.append(kp["value"])
-                        kpjacobian.append(kp["jacobian"])
-                        kppred_fature.append(kp["pred_fature"])
-
-                if num_frame > star_frame[number].item() + frames:
-                    break
+                get_img = get_img[..., ::-1]
+                get_img = cv2.resize(get_img, (256, 256))
+                get_img = np.array(img_as_float32(get_img))
+                get_img = get_img.transpose((2, 0, 1))
+                get_img = torch.from_numpy(get_img).unsqueeze(0).to(device)
+                with torch.no_grad():
+                    kp = kp_detector(get_img)
+                    kpvalue.append(kp["value"])
+                    kpjacobian.append(kp["jacobian"])
+                    kppred_fature.append(kp["pred_fature"])
             else:
                 break
-            num_frame += 1
-
         # 对所有视频pad，如果pad=0就默认补长度0，不需要额外进行判断
         kpvalue_pad = torch.zeros(pad[number], 10, 2).to(device)
         kpjacobian_pad = torch.zeros([pad[number], 10, 2, 2]).to(device)
@@ -105,7 +99,7 @@ def main(args):
     test_data = DataLoader(test_dataset, batch_size=args.test_batch_size,
                            shuffle=True, num_workers=0)
     audio2kp = Faceformer(args, device=device).to(device)
-    faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1/2e-4_1_16.01590.pth")
+    faceformer_check = torch.load(args.faceformer_checkpoint)
     model_dict = audio2kp.state_dict()
     pretraind_dic = {k: v for k, v in faceformer_check.items() if
                      k in model_dict and model_dict[k].shape == v.shape}
@@ -114,9 +108,9 @@ def main(args):
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     # optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=12)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=args.train_iteration)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
-    train_iteration = 12
+    train_iteration = args.train_iteration
     for epoch in range(args.epochs):
         audio2kp.train()
         for i, dic in enumerate(train_data):
@@ -158,10 +152,13 @@ def main(args):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--frames", default=96)
+    parser.add_argument("--wandb", default="paddle_faceformer_2e-4_batch256_feature_dim128_layer1",type=str)
+    parser.add_argument("--train_iteration", default=0, type=int)
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
     parser.add_argument("--train_batch_size", default=64, type=int)
     parser.add_argument("--test_batch_size", default=64, type=int)
+    parser.add_argument("--faceformer_checkpoint", default="/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1/2e-4_1_16.01590.pth", type=str)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test")
@@ -181,4 +178,5 @@ if __name__ == '__main__':
     parser.add_argument("--kp_dete_num_blocks", default=5)
     parser.add_argument("--kp_dete_temperature", default=0.1)
     args = parser.parse_args()
+    wandb.init(entity="priv", project="faceformer", name=args.wandb)
     main(args)
