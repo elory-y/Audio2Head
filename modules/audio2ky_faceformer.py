@@ -32,11 +32,12 @@ def init_biased_mask(n_head, max_seq_len, period):
     mask = mask.unsqueeze(0) + alibi
     return mask
 
-# Alignment Bias
+# Alignment Bias todo
 def enc_dec_mask(device, T, S):
     mask = torch.ones(T, S)
     for i in range(T):
-        mask[i, i] = 0
+        j = max(i * 4 // 3 - 2, 0)
+        mask[i, j:j+4] = 0
     return (mask==1).to(device=device)
 
 # Periodic Positional Encoding
@@ -125,22 +126,26 @@ class Faceformer(nn.Module):
             key_point, jacobian = self.decodermap(driving_output)
 
         else:
+            kp, jac = kp[:, :1], jac[:, :1]
             for i in range(frame):
                 if i == 0:
-                    driving_emd = self.encodermap(kp[:, :1], jac[:, :1])
-                    driving_input = driving_emd
-                    driving_input = self.PPE(driving_input)
+                    driving_emd = self.encodermap(kp, jac)
+                    driving_input = self.PPE(driving_emd)
                 else:
                     driving_input = self.PPE(driving_emd)
+
                 tgt_mask = self.biased_mask[:, :driving_input.shape[1],
                            :driving_input.shape[1]].clone().detach().to(device=self.device)
-                memory_mask = enc_dec_mask(self.device, self.dataset, driving_input.shape[1],
+                tgt_mask = tgt_mask.repeat(batch_size, 1, 1)
+                memory_mask = enc_dec_mask(self.device, driving_input.shape[1],
                                            hidden_states.shape[1])
                 driving_output = self.transformer_decoder(driving_input, hidden_states, tgt_mask=tgt_mask,
                                                           memory_mask=memory_mask)
-
-                driving_emd = torch.cat((driving_emd, driving_output), 1)
-            key_point, jacobian = self.decodermap(driving_output)
+                #todo 解码出每个位置的关键点和加科比，然后和之前的的拼一起然后在棉麻
+                new_kp, new_jac = self.decodermap(driving_output)
+                new_emb = self.encodermap(new_kp[:, -1].unsqueeze(1), new_jac[:, -1].unsqueeze(1))
+                driving_emd = torch.cat((driving_emd, new_emb), 1)
+            key_point, jacobian = new_kp, new_jac
         return key_point, jacobian
 
 

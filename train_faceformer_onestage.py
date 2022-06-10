@@ -15,7 +15,7 @@ import os
 import wandb
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="suimang", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer4")
+wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer4")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
@@ -100,9 +100,9 @@ def main(args):
     kp_detector.eval()
     train_dataset = FaceformerData(root_dir=args.train_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"), istrain=True)
     test_dataset = FaceformerData(root_dir=args.test_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"), istrain=False)
-    train_data = DataLoader(train_dataset, batch_size=args.batch_size,
+    train_data = DataLoader(train_dataset, batch_size=args.train_batch_size,
                             shuffle=True, num_workers=0)
-    test_data = DataLoader(test_dataset, batch_size=args.batch_size,
+    test_data = DataLoader(test_dataset, batch_size=args.test_batch_size,
                            shuffle=True, num_workers=0)
     audio2kp = Faceformer(args, device=device).to(device)
     faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/vocaset_faceformer.pth")
@@ -122,7 +122,7 @@ def main(args):
         for i, dic in enumerate(train_data):
             mp4_paths, audio_feature, poses, pad, star_frame = dic["mp4_path"], dic["audio_features"], dic["poses"], dic["pad"], dic["star_frame"]
             kpvalues, kpjacobians, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame, kp_detector=kp_detector, pad=pad)
-            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians)
+            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians, teacher_forcing=True)
             train_iteration += 1
             kp_loss, jacobian_loss, loss = calculate_loss(kpvalues, kpjacobians, infer_kpvalue, infer_jacobian, paddings, loss_function)
             optimizer.zero_grad()
@@ -143,14 +143,14 @@ def main(args):
                 kpvalues, kpjacobians, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame,
                                                              kp_detector=kp_detector, pad=pad)
 
-                infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians)
+                infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians, teacher_forcing=False)
                 kp_loss, jacobian_loss, loss = calculate_loss(kpvalues, kpjacobians, infer_kpvalue, infer_jacobian, paddings, loss_function)
                 test_kp_loss += kp_loss.item()
                 test_jacobian_loss += jacobian_loss.item()
                 test_loss += loss.item()
                 num += 1
-        # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
-        wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
+        print(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, test_loss/num)
+        # wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
         torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_4", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
@@ -160,7 +160,8 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=96)
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=256)
+    parser.add_argument("--train_batch_size", default=64, type=int)
+    parser.add_argument("--test_batch_size", default=64, type=int)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test")
