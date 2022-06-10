@@ -112,11 +112,11 @@ def main(args):
     model_dict.update(pretraind_dic)
     audio2kp.load_state_dict(model_dict)
     loss_function = nn.L1Loss(reduction='none')
-    # optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
+    optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset))
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=12)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
-    train_iteration = 0
+    train_iteration = 12
     for epoch in range(args.epochs):
         audio2kp.train()
         for i, dic in enumerate(train_data):
