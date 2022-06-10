@@ -220,7 +220,7 @@ if __name__ == "__main__":
     audio_feature = torch.rand(1, 345, 64).cuda()#中间345对应视频帧数,2048维度通过self.audio_feature_map修改
     template = torch.rand(1, 10).cuda()
     vertice = torch.rand(1,3,10).cuda()
-    model(audio_feature,template,vertice,one_hot,teacher_forcing=False)
+    model(audio_feature,template,vertice,one_hot,teacher_forcing=True)
     '''
     原版随机的tensor
     audio_feature = torch.rand(1,184274).cuda()

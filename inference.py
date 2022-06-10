@@ -192,16 +192,34 @@ def audio2head(audio_path, img_path, save_path):
     bs = audio_f.shape[1]
     predictions_gen = []
     total_frames = 0
-    
+    # cap = cv2.VideoCapture("/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test/00001.mp4")
+    # kpvalue = []
+    # kpjacobian = []
+    # ke_true = {}
+    # while cap.isOpened():
+    #     success, get_img = cap.read()
+    #     if success:
+    #         get_img = cv2.resize(get_img, (256, 256))
+    #         get_img = np.array(img_as_float32(get_img))
+    #         get_img = get_img.transpose((2, 0, 1))
+    #         get_img = torch.from_numpy(get_img).unsqueeze(0).cuda()
+    #         with torch.no_grad():
+    #             kp = kp_detector(get_img)
+    #             kpvalue.append(kp["value"])
+    #             kpjacobian.append(kp["jacobian"])
+    #     else:
+    #         break
+    # cap.release()
+    # kpvalue = torch.stack(kpvalue,dim=1).squeeze(0)
+    # kpjacobian = torch.stack(kpjacobian,dim=1).squeeze(0)
+    # ke_true["value"] = kpvalue
+    # ke_true["jacobian"] = kpjacobian
     for bs_idx in range(bs):
-
         t = {}
-
-        t["audio"] = audio_f[:, bs_idx].cuda()
+        t["audio"] = audio_f[:,bs_idx].cuda()
         t["pose"] = poses[:, bs_idx].cuda()
         t["id_img"] = img
         kp_gen_source = kp_detector(img)
-
         gen_kp = audio2kp(t)
         if bs_idx == 0:
             startid = 0
@@ -209,12 +227,13 @@ def audio2head(audio_path, img_path, save_path):
         else:
             startid = opt.seq_len // 4
             end_id = opt.seq_len // 4 * 3
-
         for frame_bs_idx in range(startid, end_id):
             tt = {}
             tt["value"] = gen_kp["value"][:, frame_bs_idx]
+            # tt["value"] = kpvalue[total_frames].unsqueeze(0)
             if opt.estimate_jacobian:
                 tt["jacobian"] = gen_kp["jacobian"][:, frame_bs_idx]
+                # tt["jacobian"] = kpjacobian[total_frames].unsqueeze(0)
             out_gen = generator(img, kp_source=kp_gen_source, kp_driving=tt)
             out_gen["kp_source"] = kp_gen_source
             out_gen["kp_driving"] = tt

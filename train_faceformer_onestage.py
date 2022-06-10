@@ -105,7 +105,7 @@ def main(args):
     test_data = DataLoader(test_dataset, batch_size=args.test_batch_size,
                            shuffle=True, num_workers=0)
     audio2kp = Faceformer(args, device=device).to(device)
-    faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/vocaset_faceformer.pth")
+    faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_1/2e-4_1_20.18463.pth")
     model_dict = audio2kp.state_dict()
     pretraind_dic = {k: v for k, v in faceformer_check.items() if
                      k in model_dict and model_dict[k].shape == v.shape}
