@@ -15,7 +15,7 @@ import os
 import wandb
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
-wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim64_layer1")
+wandb.init(entity="priv", project="faceformer", name="paddle_faceformer_2e-4_batch256_feature_dim128_layer1")
 
 def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=96, device='cuda'):
     kpvalues = []
@@ -105,7 +105,7 @@ def main(args):
     test_data = DataLoader(test_dataset, batch_size=args.test_batch_size,
                            shuffle=True, num_workers=0)
     audio2kp = Faceformer(args, device=device).to(device)
-    faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_1/2e-4_1_20.18463.pth")
+    faceformer_check = torch.load("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1/2e-4_1_16.01590.pth")
     model_dict = audio2kp.state_dict()
     pretraind_dic = {k: v for k, v in faceformer_check.items() if
                      k in model_dict and model_dict[k].shape == v.shape}
@@ -151,7 +151,7 @@ def main(args):
                 num += 1
         print(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, test_loss/num)
         wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_64_1", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
