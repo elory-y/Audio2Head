@@ -145,7 +145,7 @@ def main(args):
                 num += 1
         print(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, test_loss/num)
         wand_curve(test_kp_loss/num, test_jacobian_loss/num, test_loss/num, train_iteration, istrain=False)
-        torch.save(audio2kp.state_dict(), os.path.join("/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1", '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
+        torch.save(audio2kp.state_dict(), os.path.join(args.save_path, '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 
 
@@ -167,6 +167,7 @@ if __name__ == '__main__':
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
+    parser.add_argument("--save_path", type=str)
     parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--period", type=int, default=30)
     parser.add_argument("--feature_dim", type=int, default=64)
