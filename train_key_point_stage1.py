@@ -105,8 +105,8 @@ def main(args):
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     kp_detector.eval()
     if args.paddle_audio:
-        train_dataset = KeyPoint_PaddleAudioData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"))
-        test_dataset = KeyPoint_PaddleAudioData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"))
+        train_dataset = KeyPoint_PaddleAudioData(root_dir=args.train_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "wav_16_feature"))
+        test_dataset = KeyPoint_PaddleAudioData(root_dir=args.test_datapath, frames=64, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "wav_16_feature"))
         train_data = DataLoader(train_dataset, batch_size=args.batch_size,
                                 shuffle=True, num_workers=0)
         test_data = DataLoader(test_dataset, batch_size=args.batch_size,
