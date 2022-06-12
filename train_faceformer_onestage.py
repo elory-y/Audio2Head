@@ -104,7 +104,7 @@ def main(args):
     pretraind_dic = {k: v for k, v in faceformer_check.items() if
                      k in model_dict and model_dict[k].shape == v.shape}
     model_dict.update(pretraind_dic)
-    audio2kp.load_state_dict(faceformer_check)
+    audio2kp.load_state_dict(model_dict)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     # optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
