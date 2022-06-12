@@ -44,6 +44,8 @@ def preprocess(mp4_paths, star_frame, kp_detector, pad, frames=64, device='cuda'
                     kpvalue.append(kp["value"])
                     kpjacobian.append(kp["jacobian"])
                     kppred_fature.append(kp["pred_fature"])
+                if num_frame == star_frame[number].item():
+                    imgs.append(get_img)
             else:
                 break
         # 对所有视频pad，如果pad=0就默认补长度0，不需要额外进行判断
