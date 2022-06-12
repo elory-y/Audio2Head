@@ -12,7 +12,7 @@ import random
 from skimage import io, img_as_float32
 from modules.keypoint_detector import KPDetector
 import os
-# import wandb
+import wandb
 # os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
 
@@ -180,5 +180,5 @@ if __name__ == '__main__':
     parser.add_argument("--kp_dete_num_blocks", default=5)
     parser.add_argument("--kp_dete_temperature", default=0.1)
     args = parser.parse_args()
-    # wandb.init(entity="priv", project="faceformer", name=args.wandb)
+    wandb.init(entity="priv", project="faceformer", name=args.wandb)
     main(args)
