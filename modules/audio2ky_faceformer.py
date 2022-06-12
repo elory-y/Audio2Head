@@ -117,7 +117,7 @@ class Faceformer(nn.Module):
     def forward(self, audio_tensor,  kp, jac, teacher_forcing=True):
         hidden_states = self.audio_feature_map(audio_tensor)
         # hidden_states = F.interpolate(hidden_states.permute(0,2,1),128).permute(0,2,1)
-        frame =kp.shape[1]
+        frame = hidden_states.shape[1] * 3 // 4
         batch_size = kp.shape[0]
         if teacher_forcing:
             driving_input = self.encodermap(kp, jac)

@@ -92,8 +92,8 @@ def main(args):
     checkpoint = torch.load(args.model_path)
     kp_detector.load_state_dict(checkpoint["kp_detector"])
     kp_detector.eval()
-    train_dataset = FaceformerData(root_dir=args.train_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_train_wav16_feature"), istrain=True)
-    test_dataset = FaceformerData(root_dir=args.test_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "audio_test_wav16_feature"), istrain=False)
+    train_dataset = FaceformerData(root_dir=args.train_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "wav_16_feature"), istrain=True)
+    test_dataset = FaceformerData(root_dir=args.test_datapath, frames=args.frames, model_path=args.model_path, pad_feature_root=os.path.join(args.pad_feature_root, "wav_16_feature"), istrain=False)
     train_data = DataLoader(train_dataset, batch_size=args.train_batch_size,
                             shuffle=True, num_workers=0)
     test_data = DataLoader(test_dataset, batch_size=args.test_batch_size,
@@ -104,7 +104,7 @@ def main(args):
     pretraind_dic = {k: v for k, v in faceformer_check.items() if
                      k in model_dict and model_dict[k].shape == v.shape}
     model_dict.update(pretraind_dic)
-    audio2kp.load_state_dict(model_dict)
+    audio2kp.load_state_dict(faceformer_check)
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     # optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
@@ -158,7 +158,7 @@ if __name__ == '__main__':
     parser.add_argument("--lr", default=2.0e-4)
     parser.add_argument("--train_batch_size", default=64, type=int)
     parser.add_argument("--test_batch_size", default=64, type=int)
-    parser.add_argument("--faceformer_checkpoint", default="/home/ssd2/suimang/project/checkpoint/faceformer_audio_128_1/2e-4_1_16.01590.pth", type=str)
+    parser.add_argument("--faceformer_checkpoint", default="/home/ssd2/suimang/project/checkpoint/vocaset_faceformer.pth", type=str)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", help="pretrained model path")
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test")
