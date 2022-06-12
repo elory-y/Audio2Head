@@ -116,7 +116,7 @@ def main(args):
         for i, dic in enumerate(train_data):
             mp4_paths, audio_feature, poses, pad, star_frame = dic["mp4_path"], dic["audio_features"], dic["poses"], dic["pad"], dic["star_frame"]
             kpvalues, kpjacobians, paddings = preprocess(mp4_paths=mp4_paths, star_frame=star_frame, kp_detector=kp_detector, pad=pad)
-            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians, teacher_forcing=True)
+            infer_kpvalue, infer_jacobian = audio2kp(audio_tensor=audio_feature.squeeze(1).to(device), kp=kpvalues, jac=kpjacobians, teacher_forcing=args.train_style)
             train_iteration += 1
             kp_loss, jacobian_loss, loss = calculate_loss(kpvalues, kpjacobians, infer_kpvalue, infer_jacobian, paddings, loss_function)
             optimizer.zero_grad()
@@ -156,6 +156,7 @@ if __name__ == '__main__':
     parser.add_argument("--train_iteration", default=0, type=int)
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--train_style", default=True, type=bool)
     parser.add_argument("--train_batch_size", default=64, type=int)
     parser.add_argument("--test_batch_size", default=64, type=int)
     parser.add_argument("--faceformer_checkpoint", default="/home/ssd2/suimang/project/checkpoint/vocaset_faceformer.pth", type=str)
