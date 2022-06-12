@@ -12,8 +12,8 @@ import random
 from skimage import io, img_as_float32
 from modules.keypoint_detector import KPDetector
 import os
-# import wandb
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+import wandb
+# os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 #
 
 
@@ -188,7 +188,7 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=64)
     parser.add_argument("--paddle_audio", default=True)
     parser.add_argument("--lr", default=2.0e-4)
-    parser.add_argument("--batch_size", default=10)
+    parser.add_argument("--batch_size", default=10, type=int)
     parser.add_argument("--model_path", default=r"/home/ssd1/Database/audio2head/audio2head.pth.tar", type=str)
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train", type=str)
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test", type=str)
