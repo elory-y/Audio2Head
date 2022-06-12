@@ -64,6 +64,8 @@ class EncoderMap(nn.Module):
         self.up_jac = nn.Linear(40, 64)
         self.down = nn.Linear(128, 64)
         self.feature_dim = args.feature_dim
+        self.up1 = nn.Linear(128, 512)
+        self.up2 = nn.Linear(512, 1024)
     def forward(self, key_point, jacobian):
         bs, frame, _, _ =key_point.shape
         key_point = key_point.reshape(bs, frame, -1)
@@ -71,8 +73,9 @@ class EncoderMap(nn.Module):
         up_key_point = F.gelu(self.up_kp(key_point))
         up_jacobian = F.gelu(self.up_jac(jacobian))
         cat_fea = torch.cat((up_key_point, up_jacobian), dim=-1)
-        if self.feature_dim == 128:
-            return cat_fea
+        if self.feature_dim == 1024:
+            up1 = F.gelu(self.up1(cat_fea))
+            return F.gelu(self.up2(up1))
         else:
             return self.down(cat_fea)
 class DecoderMap(nn.Module):
