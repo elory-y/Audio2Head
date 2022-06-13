@@ -85,7 +85,7 @@ def calculate_loss(kpvalues, kpjacobians, lab_kppred_fatures, gen_kp, paddings, 
     loss = 10 * kp_loss + 10 * jacobian_loss
     return kp_loss, jacobian_loss, loss
 
-def wand_curve(kp_loss, jacobian_loss, kppred_fatures_loss, loss, iteration, istrain):
+def wand_curve(kp_loss, jacobian_loss, loss, iteration, istrain):
     phase = 'train' if istrain else 'test'
     log_dict = {
         f'{phase}_kp_loss':  kp_loss,
