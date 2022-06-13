@@ -179,7 +179,7 @@ def main(args):
                 num += 1
         # print(test_kp_loss/num, test_jacobian_loss/num, test_jacobian_map_loss/num, test_loss/num)
         wand_curve(test_kp_loss/num, test_jacobian_loss, test_loss,
-                   train_iteration, istrain=True)
+                   train_iteration, istrain=False)
         torch.save(audio2kp.state_dict(), os.path.join(args.save_path, '2e-4_%s_%.5f.pth' % (epoch, test_loss/num)))
         scheduler.step()
 

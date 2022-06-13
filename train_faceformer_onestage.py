@@ -108,7 +108,7 @@ def main(args):
     loss_function = nn.L1Loss(reduction='none')
     optimizer = torch.optim.Adam([{"params": audio2kp.parameters(), "initial_lr": 2e-4}], lr=args.lr)
     # optimizer = torch.optim.Adam(audio2kp.parameters(), lr=args.lr)
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=args.train_iteration)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=args.epochs * len(train_dataset), last_epoch=args.lr_iteration)
     # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.9)
     train_iteration = args.train_iteration
     for epoch in range(args.epochs):
@@ -154,8 +154,9 @@ if __name__ == '__main__':
     parser.add_argument("--frames", default=96)
     parser.add_argument("--wandb", default="paddle_faceformer_2e-4_batch256_feature_dim128_layer1",type=str)
     parser.add_argument("--train_iteration", default=0, type=int)
+    parser.add_argument("--lr_iteration", default=0, type=int)
     parser.add_argument("--paddle_audio", default=True)
-    parser.add_argument("--lr", default=2.0e-4)
+    parser.add_argument("--lr", default=2.0e-4, type=float)
     parser.add_argument("--train_style", default=True, type=bool)
     parser.add_argument("--train_batch_size", default=64, type=int)
     parser.add_argument("--test_batch_size", default=64, type=int)
@@ -164,7 +165,7 @@ if __name__ == '__main__':
     parser.add_argument("--train_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_train")
     parser.add_argument("--test_datapath", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl/audio_test")
     parser.add_argument("--pad_feature_root", default=r"/home/ssd2/suimang/Database/girl_data/onestage_data/audio_data_girl")
-    parser.add_argument("--epochs", default=200)
+    parser.add_argument("--epochs", default=200, type=int)
     parser.add_argument("--config", default="./config/parameters.yaml")
     parser.add_argument("--seq_len", default=64)
     parser.add_argument("--num_kp", default=10)
