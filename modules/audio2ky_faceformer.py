@@ -162,7 +162,8 @@ class Faceformer(nn.Module):
         # motion decoder
         # self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         self.device = device
-        self.encodermap = KeypointEmbedding(dim=64, emb_dim=8, device=self.device)
+        self.encodermap = EncoderMap(args)
+        # self.encodermap = KeypointEmbedding(dim=64, emb_dim=8, device=self.device)
         self.decodermap = DecoderMap(args)
         # nn.init.constant_(self.vertice_map_r.weight, 0)
         # nn.init.constant_(self.vertice_map_r.bias, 0)
