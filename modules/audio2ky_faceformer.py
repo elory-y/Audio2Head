@@ -78,6 +78,56 @@ class EncoderMap(nn.Module):
             return F.gelu(self.up2(up1))
         else:
             return self.down(cat_fea)
+
+class KeypointEmbedding(nn.Module):
+    def __init__(
+            self,
+            dim,
+            device,
+            emb_dim=None,
+            num_kp=10,
+            temperature=10000,
+    ):
+        super(KeypointEmbedding, self).__init__()
+        self.dim = dim
+        self.device = device
+        if emb_dim is None:
+            emb_dim = dim
+        dim_t = torch.arange(emb_dim // 2, dtype=torch.float32).to(device=self.device)
+        self.dim_t = temperature ** (2 * (dim_t // 2) / (emb_dim // 2)).to(device=self.device)
+        self.adapt_kp = nn.Sequential(
+            nn.Linear(num_kp * emb_dim, dim),
+            nn.ReLU(),
+            nn.Linear(dim, dim),
+        )
+        self.adapt_jac = nn.Sequential(
+            nn.Linear(num_kp * 4, dim),
+            nn.ReLU(),
+            nn.Linear(dim, dim),
+        )
+        self.merge = nn.Sequential(
+            nn.Linear(dim * 2, dim),
+            nn.ReLU(),
+            nn.Linear(dim, dim),
+        )
+
+    def embed(self, pos):
+        pos_x = pos[..., 0, None] / self.dim_t
+        pos_y = pos[..., 1, None] / self.dim_t
+        pos_x = torch.stack((pos_x[..., 0::2].sin(), pos_x[..., 1::2].cos()), dim=-1).flatten(-2)
+        pos_y = torch.stack((pos_y[..., 0::2].sin(), pos_y[..., 1::2].cos()), dim=-1).flatten(-2)
+        posemb = torch.cat((pos_y, pos_x), dim=-1)
+        return posemb
+
+    def forward(self, kp, jacobian):
+        # kp bs, t, 10, 2; jac bs, t, 10 2, 2
+        B, T, _, _ = kp.shape
+        kp_emb = self.embed(kp)
+        kp_emb = self.adapt_kp(kp_emb.view([B, T, -1]))
+        jac_emb = self.adapt_jac(jacobian.view([B, T, -1]))
+
+        return self.merge(torch.cat([kp_emb, jac_emb], dim=-1))
+
 class DecoderMap(nn.Module):
     def __init__(self, args):
         super(DecoderMap, self).__init__()
@@ -112,7 +162,7 @@ class Faceformer(nn.Module):
         # motion decoder
         # self.vertice_map_r = nn.Linear(args.feature_dim, args.vertice_dim)
         self.device = device
-        self.encodermap = EncoderMap(args)
+        self.encodermap = KeypointEmbedding(dim=64, emb_dim=8, device=self.device)
         self.decodermap = DecoderMap(args)
         # nn.init.constant_(self.vertice_map_r.weight, 0)
         # nn.init.constant_(self.vertice_map_r.bias, 0)
@@ -175,6 +225,7 @@ if __name__ == "__main__":
     parser.add_argument("--gradient_accumulation_steps", type=int, default=1, help='gradient accumulation')
     parser.add_argument("--max_epoch", type=int, default=100, help='number of epochs')
     parser.add_argument("--device", type=str, default="cuda")
+    parser.add_argument("--num_layers", type=int, default=1)
     parser.add_argument("--template_file", type=str, default="templates.pkl", help='path of the personalized templates')
     parser.add_argument("--save_path", type=str, default="save", help='path of the trained models')
     parser.add_argument("--result_path", type=str, default="result", help='path to the predictions')
@@ -189,7 +240,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # build model
-    model = Faceformer(args)
+    model = Faceformer(args, device=args.device)
     model = model.to(torch.device("cuda"))
     model.train()
     template_kp = torch.rand(4,1,10,2).cuda()
@@ -203,7 +254,7 @@ if __name__ == "__main__":
     audio_feature = torch.rand(4,86,2048).cuda()
     one_hot = torch.tensor([[0., 0., 0., 0., 0., 1., 0., 0.]]).cuda()
     # model(audio_feature, source, driving, one_hot, teacher_forcing=False)
-    model(audio_feature, template_kp, template_jiakebi, vertice_kp, vertice_jakebi, one_hot, teacher_forcing=False)
+    model(audio_feature, vertice_kp, vertice_jakebi, teacher_forcing=False)
 
 
 
